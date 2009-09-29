@@ -37,6 +37,12 @@ public class Zadaci1_03 {
 		String unos = reader.readLine();
 		int br_elem = Integer.parseInt(unos);
 		
+		/* provjera unosa */
+		if (br_elem < 1) {
+			System.err.println("Polje mora imati barem jedan element!");
+			System.exit(1);
+		}
+		
 		/* kreiraj int polje trazene velicine */
 		int[] polje = new int[br_elem];
 		
@@ -49,7 +55,7 @@ public class Zadaci1_03 {
 
 		}
 		
-		/*ispis najmanjeg */
+		/* ispis najmanjeg */
 		System.out.println("Najmanji broj je " + najmanji(polje) + ".");
 	}
 }

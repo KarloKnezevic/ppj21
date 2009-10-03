@@ -1,0 +1,67 @@
+package hr.fer.ppj21.labos.lexer;
+
+import JFlex.sym;
+
+public class MySym implements sym {
+	public static final String EOF    = "End of file";
+    public static final String ERROR  = "Error";
+    public static final String SEMICOLON = "Semicolon";
+    public static final String C_KONST = "Integer constant";
+    public static final String D_KONST = "Decimal constant";
+    public static final String ZNAK = "Character";
+    public static final String STRING = "String";
+    public static final String IDENTIFIKATOR = "Identificator";
+    public static final String KEYWORD = "Keyword";
+    public static final String OPERATOR = "Operator";
+    public static final String OBRACKET = "Open bracket";
+    public static final String CBRACKET = "Closed bracket";
+    public static final String SPECIAL = "Special character";
+    
+    public static final int IF = 0;
+    public static final int THEN = 1;
+    public static final int ELSE = 2;
+    public static final int ELSEIF = 3;
+    public static final int BEGIN = 4;
+    public static final int END = 5;
+    public static final int WHILE = 6;
+    public static final int DO = 7;
+    public static final int FOR = 8;
+    public static final int RETURN = 9;
+    public static final int NULL = 10;
+    public static final int INT = 11;
+    public static final int CHAR = 12;
+    public static final int BOOL = 13;
+    public static final int VOID = 14;
+    public static final int CLASS = 15;
+    public static final int EXTENDS = 16;
+    public static final int THIS = 17;
+    public static final int SEMICOL = 0;
+    public static final int ASSIGN = 0;
+    public static final int OR = 1;
+    public static final int AND = 2;
+    public static final int NOT = 3;
+    public static final int LT = 4;
+    public static final int GT = 5;
+    public static final int LE = 6;
+    public static final int GE = 7;
+    public static final int EQ = 8;
+    public static final int NE = 9;
+    public static final int PLUS = 10;
+    public static final int MINUS = 11;
+    public static final int TIMES = 12;
+    public static final int DIV = 13;
+    public static final int MOD = 14;
+    public static final int INC = 15;
+    public static final int DEC = 16;
+    public static final int AMP = 17;
+    public static final int PTR = 18;
+    public static final int LN = 0;
+    public static final int RN = 0;
+    public static final int LS = 1;
+    public static final int RS = 1;
+    public static final int LC = 2;
+    public static final int RC = 2;
+    public static final int DOT = 0;
+    public static final int COMMA = 1;
+    public static final int ETC = 2;
+}

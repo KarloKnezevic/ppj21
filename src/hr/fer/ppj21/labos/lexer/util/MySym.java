@@ -6,16 +6,16 @@ public class MySym implements sym {
 	public static final String EOF    = "End of file";
     public static final String ERROR  = "Error";
     public static final String SEMICOLON = "Semicolon";
-    public static final String C_KONST = "Integer constant";
-    public static final String D_KONST = "Decimal constant";
+    public static final String C_KONST = "Integer";
+    public static final String D_KONST = "Decimal";
     public static final String ZNAK = "Character";
     public static final String STRING = "String";
     public static final String IDENTIFIKATOR = "Identifier";
     public static final String KEYWORD = "Keyword";
     public static final String OPERATOR = "Operator";
-    public static final String OBRACKET = "Open bracket";
-    public static final String CBRACKET = "Closed bracket";
-    public static final String SPECIAL = "Special character";
+    public static final String OBRACKET = "Open brace";
+    public static final String CBRACKET = "Closed brace";
+    public static final String SPECIAL = "Special char";
     
     public static final int IF = 0;
     public static final int THEN = 1;

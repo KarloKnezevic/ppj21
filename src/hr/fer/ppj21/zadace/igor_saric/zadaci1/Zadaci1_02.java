@@ -1,4 +1,4 @@
-package hr.fer.ppj21.igor_saric.zadaci1;
+package hr.fer.ppj21.zadace.igor_saric.zadaci1;
 
 /**
 * @author Igor Saric

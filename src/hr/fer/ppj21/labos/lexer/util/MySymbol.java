@@ -41,6 +41,6 @@ public class MySymbol extends Symbol {
 	  }
 	  
 	  public String toString() {   
-	    return "<"+ klasa + ">\t"+ text + "\t(row:"+line+",column:"+column+")";
+	    return "<"+ klasa + ">\t"+ text + "\t(line:"+line+",column:"+column+")";
 	  }
 }

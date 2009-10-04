@@ -12,7 +12,6 @@ import java_cup.*;
 %char
 %line
 %column
-%debug
 
 %{
 StringBuffer string = new StringBuffer();
@@ -22,14 +21,10 @@ return symbol(0, klasa);
 }
 
 private MySymbol symbol(int type, String klasa) {
-MySymbol sym = new MySymbol(type, yyline, yycolumn, klasa, yytext());
-System.out.println(sym.toString());
-return sym;
+return new MySymbol(type, yyline, yycolumn, klasa, yytext());
 }
 private MySymbol symbol(int type, String klasa, Object value) {
-MySymbol sym = new MySymbol(type, yyline, yycolumn, klasa, value, yytext());
-System.out.println(sym.toString());
-return sym;
+return new MySymbol(type, yyline, yycolumn, klasa, value, yytext());
 }
 %}
 

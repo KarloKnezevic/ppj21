@@ -1,4 +1,4 @@
-package hr.fer.ppj21.labos.lexer;
+package hr.fer.ppj21.labos.lexer.util;
 
 import java_cup.runtime.Symbol;
 

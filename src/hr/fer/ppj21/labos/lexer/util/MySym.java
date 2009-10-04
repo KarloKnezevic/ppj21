@@ -1,4 +1,4 @@
-package hr.fer.ppj21.labos.lexer;
+package hr.fer.ppj21.labos.lexer.util;
 
 import JFlex.sym;
 

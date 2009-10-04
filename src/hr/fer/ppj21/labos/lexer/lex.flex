@@ -1,15 +1,18 @@
 package hr.fer.ppj21.labos.lexer;
+
+import hr.fer.ppj21.labos.lexer.util.*;
 import java.io.*;
 import java.util.*;
 import java_cup.*;
 %%
 
 %public
+%class Lexer
 %type MySymbol
 %char
 %line
 %column
-%standalone
+%debug
 
 %{
 StringBuffer string = new StringBuffer();

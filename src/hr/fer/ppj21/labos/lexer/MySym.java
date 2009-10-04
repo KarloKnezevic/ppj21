@@ -10,7 +10,7 @@ public class MySym implements sym {
     public static final String D_KONST = "Decimal constant";
     public static final String ZNAK = "Character";
     public static final String STRING = "String";
-    public static final String IDENTIFIKATOR = "Identificator";
+    public static final String IDENTIFIKATOR = "Identifier";
     public static final String KEYWORD = "Keyword";
     public static final String OPERATOR = "Operator";
     public static final String OBRACKET = "Open bracket";

@@ -1,4 +1,4 @@
-package hr.fer.ppj21.igor_saric.zadaci2;
+package hr.fer.ppj21.zadace.igor_saric.zadaci2;
 
 public class Zadaci2_01 {
 

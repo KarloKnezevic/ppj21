@@ -120,7 +120,7 @@ return symbol(MySym.SEMICOLON);
 {noviRed} {
 yybegin(NORMALNO);
 }
-. { }
+. { return symbol(MySym.ERROR); }
 }
 <KOMENTAR1> {
 {noviRed} { yybegin(NORMALNO); }

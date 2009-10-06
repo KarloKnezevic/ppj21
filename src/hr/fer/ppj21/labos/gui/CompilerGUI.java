@@ -187,6 +187,7 @@ public class CompilerGUI extends JFrame {
 		tabbedMainPane.addTab("Syntax highlight", highlightPanel);
 		
 		tabbedMainPane.addTab("Leksièka tablica", tablePanel);
+		
 		tabbedMainPane.setEnabledAt(1, false);
 		tabbedMainPane.setEnabledAt(2, false);
 		mainPanel.add(tabbedMainPane);

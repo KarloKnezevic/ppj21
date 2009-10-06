@@ -1,3 +1,5 @@
+package hr.fer.ppj21.zadace.filip_defar.zadaci1;
+
 import java.text.DecimalFormat; 
 
 class zad1

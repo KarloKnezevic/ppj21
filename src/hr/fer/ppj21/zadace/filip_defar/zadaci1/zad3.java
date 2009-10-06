@@ -1,3 +1,5 @@
+package hr.fer.ppj21.zadace.filip_defar.zadaci1;
+
 import java.io.BufferedReader; 
 import java.io.IOException; 
 import java.io.InputStreamReader;

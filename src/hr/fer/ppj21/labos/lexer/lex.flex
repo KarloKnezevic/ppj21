@@ -12,18 +12,19 @@ import java_cup.*;
 %char
 %line
 %column
+%debug
 
 %{
 StringBuffer string = new StringBuffer();
 
 private MySymbol symbol(String klasa) {
-return symbol(0, klasa);
+return symbol("", klasa);
 }
 
-private MySymbol symbol(int type, String klasa) {
+private MySymbol symbol(String type, String klasa) {
 return new MySymbol(type, yyline, yycolumn, klasa, yytext());
 }
-private MySymbol symbol(int type, String klasa, Object value) {
+private MySymbol symbol(String type, String klasa, Object value) {
 return new MySymbol(type, yyline, yycolumn, klasa, value, yytext());
 }
 %}
@@ -41,9 +42,10 @@ schar = [^\'\"\\\r\n]|{escchar}
 znak = \'{schar}\'
 string = \"{schar}*\"
 identifikator = [A-Za-z][A-Za-z0-9]*
+krivaVarijabla = [0-9]+[A-Za-z]+[A-Za-z0-9]*
 razmak = [\ \t]
 noviRed = \r|\n|\r\n
-%state NORMALNO KOMENTAR1 KOMENTAR2 LEXERROR
+%state NORMALNO KOMENTAR1 KOMENTAR2 LEXERROR UNARY
 
 %%
 <NORMALNO> {
@@ -87,8 +89,8 @@ this	{	return symbol(MySym.THIS, MySym.KEYWORD); }
 "--" 	{	return symbol(MySym.DEC, MySym.OPERATOR); }
 "&" 	{	return symbol(MySym.AMP, MySym.OPERATOR); }
 "^" 	{	return symbol(MySym.PTR, MySym.OPERATOR); }
-"(" 	{	return symbol(MySym.LN, MySym.OBRACKET); }
-")" 	{	return symbol(MySym.RN, MySym.CBRACKET); }
+"(" 	{	return symbol(MySym.LR, MySym.OBRACKET); }
+")" 	{	return symbol(MySym.RR, MySym.CBRACKET); }
 "[" 	{	return symbol(MySym.LS, MySym.OBRACKET); }
 "]" 	{	return symbol(MySym.RS, MySym.CBRACKET); }
 "{"		{	return symbol(MySym.LC, MySym.OBRACKET); }
@@ -96,29 +98,43 @@ this	{	return symbol(MySym.THIS, MySym.KEYWORD); }
 "." 	{	return symbol(MySym.DOT, MySym.SPECIAL); }
 "," 	{	return symbol(MySym.COMMA, MySym.SPECIAL); }
 "..." 	{	return symbol(MySym.ETC, MySym.SPECIAL); }
-{cijeliBroj} 	{ return symbol(0, MySym.C_KONST, new Integer(yytext())); }
-{decimalniBroj} { return symbol(1, MySym.D_KONST, new Double(yytext())); }
-{znak} 			{ return symbol(2, MySym.ZNAK, new String(yytext())); }
-{string} 		{ return symbol(3, MySym.STRING, new String(yytext())); }
-{identifikator} { return symbol(4, MySym.IDENTIFIKATOR, new String(yytext())); }
+"=+" 	{	yybegin(UNARY);
+			yypushback(1);
+			return symbol(MySym.ASSIGN, MySym.OPERATOR);
+		}
+"=-" 	{	yybegin(UNARY);
+			yypushback(1);
+			return symbol(MySym.ASSIGN, MySym.OPERATOR);
+		}
+{cijeliBroj} 	{ return symbol("INTEGER", MySym.KONST, new Integer(yytext())); }
+{decimalniBroj} { return symbol("DOUBLE", MySym.KONST, new Double(yytext())); }
+{znak} 			{ return symbol("", MySym.ZNAK, new String(yytext())); }
+{string} 		{ return symbol("", MySym.STRING, new String(yytext())); }
+{identifikator} { return symbol("", MySym.IDENTIFIKATOR, new String(yytext())); }
+{krivaVarijabla} { return symbol(MySym.VARERROR, MySym.ERROR); }
 
 "//" { yybegin(KOMENTAR1); }
 "/*" { yybegin(KOMENTAR2); }
 . {
-yybegin(LEXERROR);
-return symbol(MySym.ERROR);
+return symbol(MySym.UNEXPECTED, MySym.ERROR);
 }
 }
-
+<UNARY> {
+"+"|"-" {identifikator} {	yybegin(NORMALNO);
+						return symbol("", MySym.IDENTIFIKATOR, new String(yytext()));
+}
+"+"|"-" {cijeliBroj} {	yybegin(NORMALNO);
+						return symbol("INTEGER", MySym.KONST, new Integer(yytext()));
+}
+"+"|"-" {decimalniBroj} {	yybegin(NORMALNO);
+						return symbol("DOUBLE", MySym.KONST, new Double(yytext()));
+}
+. { yybegin(LEXERROR); }
+}
 <LEXERROR> {
-";" {
-yybegin(NORMALNO);
-return symbol(MySym.SEMICOLON);
-}
-{noviRed} {
-yybegin(NORMALNO);
-}
-. { return symbol(MySym.ERROR); }
+
+. { yybegin(NORMALNO);
+	return symbol(MySym.UNEXPECTED, MySym.ERROR); }
 }
 <KOMENTAR1> {
 {noviRed} { yybegin(NORMALNO); }

@@ -1,3 +1,5 @@
+package hr.fer.ppj21.zadace.filip_defar.zadaci1;
+
 class zad2
 {
   public static void main(String args[])

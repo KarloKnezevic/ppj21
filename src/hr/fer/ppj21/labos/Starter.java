@@ -10,6 +10,7 @@ import javax.swing.SwingUtilities;
 
 import hr.fer.ppj21.labos.gui.CompilerGUI;
 import hr.fer.ppj21.labos.lexer.Lexer;
+import hr.fer.ppj21.labos.lexer.util.*;
 
 public class Starter {
 
@@ -19,9 +20,11 @@ public class Starter {
 			Lexer scanner;
 			try {
 				scanner = new Lexer(new FileReader(args[0]));
+				MySymbol s;
 				do {
-		            System.out.println(scanner.yylex().toString());
-		        } while (!scanner.zzAtEOF);
+					s = scanner.yylex();
+		            System.out.println(s.toString());
+		        } while (!s.getKlasa().equals(MySym.EOF));
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

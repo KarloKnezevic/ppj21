@@ -1,11 +1,15 @@
 package hr.fer.ppj21.labos.gui;
 
 import hr.fer.ppj21.labos.lexer.Lexer;
+import hr.fer.ppj21.labos.lexer.util.MySym;
 import hr.fer.ppj21.labos.lexer.util.MySymbol;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.LayoutManager;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.ByteArrayInputStream;
@@ -17,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -29,6 +34,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
+import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -43,6 +49,7 @@ public class CompilerGUI extends JFrame {
 	private List<MySymbol> symbols = new ArrayList<MySymbol>();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
 	private JPanel tablePanel = new JPanel(new BorderLayout());
+	private JTextArea errorText = new JTextArea();
 	public CompilerGUI() throws FileNotFoundException {
 		super();
 		showGUI();
@@ -57,21 +64,18 @@ public class CompilerGUI extends JFrame {
 		JMenuItem fileSave = new JMenuItem("Save");
 		JMenuItem fileClear = new JMenuItem("Clear");
 		JMenuItem fileExit = new JMenuItem("Exit");
-		fileOpen.addMouseListener(new MouseListener() {		
+		fileOpen.addActionListener(new ActionListener() {
 			@Override
-			public void mouseReleased(MouseEvent e) {}
-			@Override
-			public void mousePressed(MouseEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 				FileNameExtensionFilter filter = new FileNameExtensionFilter("C/C++ files", "c", "h", "cpp");
 				chooser.setAcceptAllFileFilterUsed(true);
 				chooser.setFileFilter(filter);
-				
-				;
 				if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 					file = chooser.getSelectedFile();
 					try {
 						sourceText.read(new FileReader(file), file);
+						tabbedMainPane.setSelectedIndex(0);
 					} catch (FileNotFoundException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
@@ -81,23 +85,14 @@ public class CompilerGUI extends JFrame {
 					}
 				}
 			}
-			@Override
-			public void mouseExited(MouseEvent e) {}
-			@Override
-			public void mouseEntered(MouseEvent e) {}
-			@Override
-			public void mouseClicked(MouseEvent e) {}
 		});
-		fileSave.addMouseListener(new MouseListener() {		
+		fileSave.addActionListener(new ActionListener() {
 			@Override
-			public void mouseReleased(MouseEvent e) {}
-			@Override
-			public void mousePressed(MouseEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 				FileNameExtensionFilter filter = new FileNameExtensionFilter("C/C++ files", "c", "h", "cpp");
 				chooser.setAcceptAllFileFilterUsed(true);
 				chooser.addChoosableFileFilter(filter);
-
 				if(chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
 					file = chooser.getSelectedFile();
 					try {
@@ -111,40 +106,18 @@ public class CompilerGUI extends JFrame {
 					}
 				}
 			}
-			@Override
-			public void mouseExited(MouseEvent e) {}
-			@Override
-			public void mouseEntered(MouseEvent e) {}
-			@Override
-			public void mouseClicked(MouseEvent e) {}
 		});
-		fileClear.addMouseListener(new MouseListener() {		
+		fileClear.addActionListener(new ActionListener() {
 			@Override
-			public void mouseReleased(MouseEvent e) {}
-			@Override
-			public void mousePressed(MouseEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				sourceText.setText("");
 			}
-			@Override
-			public void mouseExited(MouseEvent e) {}
-			@Override
-			public void mouseEntered(MouseEvent e) {}
-			@Override
-			public void mouseClicked(MouseEvent e) {}
 		});
-		fileExit.addMouseListener(new MouseListener() {		
+		fileExit.addActionListener(new ActionListener() {
 			@Override
-			public void mouseReleased(MouseEvent e) {}
-			@Override
-			public void mousePressed(MouseEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				System.exit(0);
 			}
-			@Override
-			public void mouseExited(MouseEvent e) {}
-			@Override
-			public void mouseEntered(MouseEvent e) {}
-			@Override
-			public void mouseClicked(MouseEvent e) {}
 		});
 		fileMenu.add(fileOpen);
 		fileMenu.add(fileSave);
@@ -184,7 +157,15 @@ public class CompilerGUI extends JFrame {
 		JPanel highlightPanel = new JPanel(new BorderLayout());
 		JScrollPane scrollPane2 = new JScrollPane(highlightText);
 		highlightPanel.add(scrollPane2, BorderLayout.CENTER);
+		JPanel errorPanel = new JPanel(new BorderLayout());
+		errorPanel.setPreferredSize(new Dimension(500,100));
+		errorPanel.setBorder(new TitledBorder("Errors:"));
+		JScrollPane scrollPane3 = new JScrollPane(errorText);
+		errorPanel.add(scrollPane3, BorderLayout.CENTER);
+	
+		highlightPanel.add(errorPanel, BorderLayout.SOUTH);
 		tabbedMainPane.addTab("Syntax highlight", highlightPanel);
+		
 		
 		tabbedMainPane.addTab("Leksièka tablica", tablePanel);
 		
@@ -202,21 +183,28 @@ public class CompilerGUI extends JFrame {
 		Lexer scanner = new Lexer(bs);
 		do {
 			symbols.add(scanner.yylex());
-        } while (!scanner.zzAtEOF);
+        } while (!symbols.get(symbols.size()-1).getKlasa().equals(MySym.EOF));
 		highlightSyntax();
 	}
 	
 	private void highlightSyntax() {
 		StyledDocument doc = highlightText.getStyledDocument(); 
-		Style style = highlightText.addStyle("Red", null);
+		Style style = highlightText.addStyle("String", null);
 	    StyleConstants.setForeground(style, Color.RED);
-	    style = highlightText.addStyle("Green", null);
+	    StyleConstants.setBold(style, true);
+	    style = highlightText.addStyle("Keyword", null);
 	    StyleConstants.setForeground(style, Color.GREEN);
-	    style = highlightText.addStyle("Blue", null);
+	    StyleConstants.setBold(style, true);
+	    style = highlightText.addStyle("Identifier", null);
 	    StyleConstants.setForeground(style, Color.BLUE);
-	    style = highlightText.addStyle("Pink", null);
+	    StyleConstants.setBold(style, true);
+	    style = highlightText.addStyle("Constant", null);
 	    StyleConstants.setForeground(style, Color.PINK);
+	    StyleConstants.setBold(style, true);
+	    style = highlightText.addStyle("Error", null);
+	    StyleConstants.setBackground(style, Color.YELLOW);
 	    highlightText.setText(sourceText.getText());
+	    errorText.setText("");
 		String text = highlightText.getText();
 		String[] colNames = {"Klasa", "Simbol", "Pozicija"};
 		String[][] data = new String[symbols.size()][3];
@@ -224,21 +212,47 @@ public class CompilerGUI extends JFrame {
 	    int i=0;
 		for(MySymbol s:symbols) {
 			String sText = s.getText();
-			data[i][0]=s.getKlasa();
+			if(s.getType().equals(""))
+				data[i][0]=s.getKlasa();
+			else
+				data[i][0]=s.getKlasa() + "<" + s.getType() + ">";
 			data[i][1]=sText;
 			data[i][2]="(line:" + s.getLine() + ",column:" + s.getColumn() + ")";
 			i++;
-			idx = text.indexOf(s.getText(), idx+1);
-			if(s.getKlasa().equals("Keyword"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("Green"), true);
-			else if(s.getKlasa().equals("Character") || s.getKlasa().equals("String"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("Red"), true);
-			else if(s.getKlasa().equals("Identifier"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("Blue"), true);
-			else if(s.getKlasa().equals("Integer") || s.getKlasa().equals("Decimal"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("Pink"), true);
-	
+			if(idx==0)
+				idx = text.indexOf(s.getText(), idx);
+			else
+				idx = text.indexOf(s.getText(), idx+1);
+			if(s.getKlasa().equals("Character"))
+				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("String"), true);
+			else if(s.getKlasa().equals("String")||s.getKlasa().equals("Keyword")||s.getKlasa().equals("Identifier")||s.getKlasa().equals("Constant"))
+				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle(s.getKlasa()), true);
 		}
+		idx=0;
+		for(MySymbol s:symbols) {
+			if(s.getKlasa().equals("Error")) {
+				if(idx==0)
+					idx = text.indexOf(s.getText(), idx);
+				else
+					idx = text.indexOf(s.getText(), idx+1);
+				String currText = errorText.getText();
+				String newText;
+				newText = currText + "Greška na liniji: " + s.getLine() + ", na simbolu: " + s.getText();
+				if(s.getType().equals("VARERROR"))
+					newText+=" <Pogrešna deklaracija varijable>\n";
+				if(s.getType().equals("UNEXPECTED"))
+					newText+=" <Neoèekivani simbol>\n";
+				errorText.setText(newText);
+				int hlidx1=idx;
+				int hlidx2=idx;
+				while(hlidx1>0 && text.charAt(hlidx1)!='\n')
+					hlidx1--;
+				while(hlidx2<text.length() && text.charAt(hlidx2)!='\n')
+					hlidx2++;
+				doc.setCharacterAttributes(hlidx1, hlidx2-hlidx1, highlightText.getStyle(s.getKlasa()), true);
+			}
+		}
+		
 		tablePanel.removeAll();
 		JTable lexerTable = new JTable(data, colNames);
 		JScrollPane scrollPane3 = new JScrollPane(lexerTable);

@@ -7,6 +7,8 @@ import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 import hr.fer.ppj21.labos.gui.CompilerGUI;
 import hr.fer.ppj21.labos.lexer.Lexer;
@@ -25,15 +27,25 @@ public class Starter {
 					s = scanner.yylex();
 		            System.out.println(s.toString());
 		        } while (!s.getKlasa().equals(MySym.EOF));
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (FileNotFoundException e1) {
+				System.err.println("Nije pronaðena datoteka!");
+				System.exit(17);
+			} catch (IOException e1) {
+				System.err.println("Greška prilikom I/O operacija");
+				System.exit(13);
 			}
 		}
 		else if(args.length==0) {
+			try {
+			    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+			        if ("Nimbus".equals(info.getName())) {
+			            UIManager.setLookAndFeel(info.getClassName());
+			            break;
+			        }
+			    }
+			} catch (Exception e) {
+			    // If Nimbus is not available, you can set the GUI to another look and feel.
+			}
 			SwingUtilities.invokeAndWait(new Runnable() {
 				
 				@Override
@@ -43,11 +55,10 @@ public class Starter {
 						gui = new CompilerGUI();
 						gui.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 						gui.setVisible(true);
-					} catch (FileNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					} catch (FileNotFoundException e1) {
+						System.err.println("Nije pronaðena datoteka!");
+						System.exit(17);
 					}
-					
 				}
 			});
 		}

@@ -7,7 +7,6 @@ import hr.fer.ppj21.labos.lexer.util.MySymbol;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -57,6 +55,8 @@ public class CompilerGUI extends JFrame {
 	
 	public void showGUI() throws FileNotFoundException {
 		setPreferredSize(new Dimension(500,500));
+		setLocation(50,50);
+		setTitle("OLC - Our Little Compiler");
 		JPanel mainPanel = new JPanel(new BorderLayout());
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
@@ -77,11 +77,11 @@ public class CompilerGUI extends JFrame {
 						sourceText.read(new FileReader(file), file);
 						tabbedMainPane.setSelectedIndex(0);
 					} catch (FileNotFoundException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						System.err.println("Nije pronaðena datoteka!");
+						System.exit(17);
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						System.err.println("Greška prilikom I/O operacija");
+						System.exit(13);
 					}
 				}
 			}
@@ -98,11 +98,11 @@ public class CompilerGUI extends JFrame {
 					try {
 						sourceText.write(new FileWriter(file));
 					} catch (FileNotFoundException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						System.err.println("Nije pronaðena datoteka!");
+						System.exit(17);
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+						System.err.println("Greška prilikom I/O operacija");
+						System.exit(13);
 					}
 				}
 			}
@@ -134,8 +134,8 @@ public class CompilerGUI extends JFrame {
 				try {
 					doCompile();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					System.err.println("Greška prilikom I/O operacija");
+					System.exit(13);
 				}
 			}
 			@Override

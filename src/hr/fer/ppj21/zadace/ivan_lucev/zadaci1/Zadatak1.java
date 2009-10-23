@@ -1,3 +1,4 @@
+package hr.fer.ppj21.zadace.ivan_lucev.zadaci1;
 import java.text.DecimalFormat;
 import java.lang.Math;
 

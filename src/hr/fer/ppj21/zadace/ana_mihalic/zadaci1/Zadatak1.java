@@ -37,6 +37,7 @@ public class Zadatak1 {
 		for (int i=0; i<duljinaPolja; i++){
 			zbroj += polje[i];
 		}
+		
 		double aritmeticka = zbroj/duljinaPolja;
 		
 		return aritmeticka;		

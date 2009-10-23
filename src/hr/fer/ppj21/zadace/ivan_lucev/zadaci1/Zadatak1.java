@@ -5,6 +5,12 @@ import java.lang.Math;
 public class Zadatak1 {
 
 	public static void main(String[] args) {
+		
+		if(args.length == 0) {
+			System.out.println("Program mora imati barem jedan argument!");
+			System.exit(1);
+			}
+		
 		int brojArgumenata = args.length;
 		double[] brojevi = new double [brojArgumenata];
 		

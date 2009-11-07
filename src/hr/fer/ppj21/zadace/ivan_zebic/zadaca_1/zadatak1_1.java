@@ -1,4 +1,4 @@
-package hr.fer.ppj21.zadace.ivan_zebic.zadatak1_1;
+package hr.fer.ppj21.zadace.ivan_zebic.zadaca_1;
 
 import java.text.DecimalFormat;
 
@@ -7,7 +7,7 @@ import java.text.DecimalFormat;
 * @version 1.0
 */
 
-public class Zadatak1_1 {
+public class zadatak1_1 {
 	
 	private static double ari_s(double[] polje) {
 	

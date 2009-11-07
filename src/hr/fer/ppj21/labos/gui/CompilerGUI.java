@@ -38,19 +38,28 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.modes.JavaTokenMaker;
+
 public class CompilerGUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	private File file;
 	private JTextArea sourceText = new JTextArea();
-	private JTextPane highlightText = new JTextPane();
+	private RSyntaxTextArea highlightText = new RSyntaxTextArea();
 	private List<MySymbol> symbols = new ArrayList<MySymbol>();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
 	private JPanel tablePanel = new JPanel(new BorderLayout());
 	private JTextArea errorText = new JTextArea();
 	public CompilerGUI() throws FileNotFoundException {
 		super();
-		showGUI();
+		AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+		atmf.putMapping("Java", "org.fife.ui.rsyntaxtextarea.modes.JavaTokenMaker");
+		TokenMakerFactory.setDefaultInstance(atmf);
+		highlightText.setSyntaxEditingStyle("Java");
+		showGUI();	
 	}
 	
 	public void showGUI() throws FileNotFoundException {
@@ -188,7 +197,7 @@ public class CompilerGUI extends JFrame {
 	}
 	
 	private void highlightSyntax() {
-		StyledDocument doc = highlightText.getStyledDocument(); 
+		/*StyledDocument doc = highlightText.getStyledDocument(); 
 		Style style = highlightText.addStyle("String", null);
 	    StyleConstants.setForeground(style, Color.RED);
 	    StyleConstants.setBold(style, true);
@@ -256,7 +265,7 @@ public class CompilerGUI extends JFrame {
 		tablePanel.removeAll();
 		JTable lexerTable = new JTable(data, colNames);
 		JScrollPane scrollPane3 = new JScrollPane(lexerTable);
-		tablePanel.add(scrollPane3, BorderLayout.CENTER);
+		tablePanel.add(scrollPane3, BorderLayout.CENTER);*/
 		tabbedMainPane.setEnabledAt(1, true);
 		tabbedMainPane.setEnabledAt(2, true);
 		tabbedMainPane.setSelectedIndex(1);

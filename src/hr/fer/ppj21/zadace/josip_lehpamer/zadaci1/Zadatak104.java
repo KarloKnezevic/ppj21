@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 
-public class zadatak104 {
+public class Zadatak104 {
 
 	private static double nadjiMedijan(int[] polje) {
 

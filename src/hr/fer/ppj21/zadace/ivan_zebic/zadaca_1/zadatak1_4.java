@@ -1,4 +1,4 @@
-packpackage hr.fer.ppj21.zadace.ivan_zebic.zadatak1_4;
+package hr.fer.ppj21.zadace.ivan_zebic.zadaca_1;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,7 +9,7 @@ import java.io.InputStreamReader;
 * @version 1.0
 */
 
-public class Zadatak1_4 {
+public class zadatak1_4 {
 	
 	public static void bubble(int[] polje) {
 		

@@ -1,11 +1,11 @@
-package hr.fer.ppj21.zadace.ivan_zebic.zadatak1_2;
+package hr.fer.ppj21.zadace.ivan_zebic.zadaca_1;
 
 /**
 * @author Ivan Zebiæ
 * @version 1.0
 */
 
-public class Zadatak1_2 {
+public class zadatak1_2 {
 	
 	private static int Fibbonaci(int broj) {
 		

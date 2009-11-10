@@ -1,11 +1,10 @@
 package hr.fer.ppj21.labos.gui;
 
-import hr.fer.ppj21.labos.lexer.Lexer;
-import hr.fer.ppj21.labos.lexer.util.MySym;
-import hr.fer.ppj21.labos.lexer.util.MySymbol;
+import hr.fer.ppj21.labos.parser.MiniJava;
+import hr.fer.ppj21.labos.parser.ParseException;
+import hr.fer.ppj21.labos.parser.tree.SyntaxTree;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -17,8 +16,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -29,36 +26,31 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.JTextArea;
-import javax.swing.JTextPane;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
-import org.fife.ui.rsyntaxtextarea.modes.JavaTokenMaker;
 
 public class CompilerGUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	private File file;
-	private JTextArea sourceText = new JTextArea();
-	private RSyntaxTextArea highlightText = new RSyntaxTextArea();
-	private List<MySymbol> symbols = new ArrayList<MySymbol>();
+	private RSyntaxTextArea sourceText = new RSyntaxTextArea();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
-	private JPanel tablePanel = new JPanel(new BorderLayout());
 	private JTextArea errorText = new JTextArea();
+	private JPanel treePanel;
+	private JScrollPane treeScrollPane;
+	private boolean firstCompilation = true;
+	
 	public CompilerGUI() throws FileNotFoundException {
 		super();
 		AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
 		atmf.putMapping("Java", "org.fife.ui.rsyntaxtextarea.modes.JavaTokenMaker");
 		TokenMakerFactory.setDefaultInstance(atmf);
-		highlightText.setSyntaxEditingStyle("Java");
+		sourceText.setSyntaxEditingStyle("Java");
 		showGUI();	
 	}
 	
@@ -77,7 +69,7 @@ public class CompilerGUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
-				FileNameExtensionFilter filter = new FileNameExtensionFilter("C/C++ files", "c", "h", "cpp");
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("Java files", "java");
 				chooser.setAcceptAllFileFilterUsed(true);
 				chooser.setFileFilter(filter);
 				if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -163,23 +155,15 @@ public class CompilerGUI extends JFrame {
 		sourcePanel.add(scrollPane1, BorderLayout.CENTER);
 		tabbedMainPane.addTab("Source code", sourcePanel);
 		
-		JPanel highlightPanel = new JPanel(new BorderLayout());
-		JScrollPane scrollPane2 = new JScrollPane(highlightText);
-		highlightPanel.add(scrollPane2, BorderLayout.CENTER);
 		JPanel errorPanel = new JPanel(new BorderLayout());
 		errorPanel.setPreferredSize(new Dimension(500,100));
 		errorPanel.setBorder(new TitledBorder("Errors:"));
 		JScrollPane scrollPane3 = new JScrollPane(errorText);
 		errorPanel.add(scrollPane3, BorderLayout.CENTER);
 	
-		highlightPanel.add(errorPanel, BorderLayout.SOUTH);
-		tabbedMainPane.addTab("Syntax highlight", highlightPanel);
+		sourcePanel.add(errorPanel, BorderLayout.SOUTH);
+		tabbedMainPane.addTab("Source", sourcePanel);
 		
-		
-		tabbedMainPane.addTab("Leksièka tablica", tablePanel);
-		
-		tabbedMainPane.setEnabledAt(1, false);
-		tabbedMainPane.setEnabledAt(2, false);
 		mainPanel.add(tabbedMainPane);
 		mainPanel.add(menuBar,BorderLayout.NORTH);
 		this.getContentPane().add(mainPanel);
@@ -187,87 +171,22 @@ public class CompilerGUI extends JFrame {
 	}
 	
 	private void doCompile() throws IOException {
-		ByteArrayInputStream bs = new ByteArrayInputStream(sourceText.getText().getBytes());
-		symbols = new ArrayList<MySymbol>();
-		Lexer scanner = new Lexer(bs);
-		do {
-			symbols.add(scanner.yylex());
-        } while (!symbols.get(symbols.size()-1).getKlasa().equals(MySym.EOF));
-		highlightSyntax();
-	}
-	
-	private void highlightSyntax() {
-		/*StyledDocument doc = highlightText.getStyledDocument(); 
-		Style style = highlightText.addStyle("String", null);
-	    StyleConstants.setForeground(style, Color.RED);
-	    StyleConstants.setBold(style, true);
-	    style = highlightText.addStyle("Keyword", null);
-	    StyleConstants.setForeground(style, Color.GREEN);
-	    StyleConstants.setBold(style, true);
-	    style = highlightText.addStyle("Identifier", null);
-	    StyleConstants.setForeground(style, Color.BLUE);
-	    StyleConstants.setBold(style, true);
-	    style = highlightText.addStyle("Constant", null);
-	    StyleConstants.setForeground(style, Color.PINK);
-	    StyleConstants.setBold(style, true);
-	    style = highlightText.addStyle("Error", null);
-	    StyleConstants.setBackground(style, Color.YELLOW);
-	    highlightText.setText(sourceText.getText());
-	    errorText.setText("");
-		String text = highlightText.getText();
-		String[] colNames = {"Klasa", "Simbol", "Pozicija"};
-		String[][] data = new String[symbols.size()][3];
-	    int idx=0;
-	    int i=0;
-		for(MySymbol s:symbols) {
-			String sText = s.getText();
-			if(s.getType().equals(""))
-				data[i][0]=s.getKlasa();
-			else
-				data[i][0]=s.getKlasa() + "<" + s.getType() + ">";
-			data[i][1]=sText;
-			data[i][2]="(line:" + s.getLine() + ",column:" + s.getColumn() + ")";
-			i++;
-			if(idx==0)
-				idx = text.indexOf(s.getText(), idx);
-			else
-				idx = text.indexOf(s.getText(), idx+1);
-			if(s.getKlasa().equals("Character"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle("String"), true);
-			else if(s.getKlasa().equals("String")||s.getKlasa().equals("Keyword")||s.getKlasa().equals("Identifier")||s.getKlasa().equals("Constant"))
-				doc.setCharacterAttributes(idx, sText.length(), highlightText.getStyle(s.getKlasa()), true);
+		errorText.setText("");
+		if(firstCompilation) {
+			new MiniJava(new ByteArrayInputStream(sourceText.getText().getBytes()));
+			treePanel = new JPanel(new BorderLayout());
+			firstCompilation=false;
 		}
-		idx=0;
-		for(MySymbol s:symbols) {
-			if(s.getKlasa().equals("Error")) {
-				if(idx==0)
-					idx = text.indexOf(s.getText(), idx);
-				else
-					idx = text.indexOf(s.getText(), idx+1);
-				String currText = errorText.getText();
-				String newText;
-				newText = currText + "Greška na liniji: " + s.getLine() + ", na simbolu: " + s.getText();
-				if(s.getType().equals("VARERROR"))
-					newText+=" <Pogrešna deklaracija varijable>\n";
-				if(s.getType().equals("UNEXPECTED"))
-					newText+=" <Neoèekivani simbol>\n";
-				errorText.setText(newText);
-				int hlidx1=idx;
-				int hlidx2=idx;
-				while(hlidx1>0 && text.charAt(hlidx1)!='\n')
-					hlidx1--;
-				while(hlidx2<text.length() && text.charAt(hlidx2)!='\n')
-					hlidx2++;
-				doc.setCharacterAttributes(hlidx1, hlidx2-hlidx1, highlightText.getStyle(s.getKlasa()), true);
-			}
+		else {
+			MiniJava.ReInit(new ByteArrayInputStream(sourceText.getText().getBytes()));
+			tabbedMainPane.remove(treeScrollPane);
 		}
-		
-		tablePanel.removeAll();
-		JTable lexerTable = new JTable(data, colNames);
-		JScrollPane scrollPane3 = new JScrollPane(lexerTable);
-		tablePanel.add(scrollPane3, BorderLayout.CENTER);*/
-		tabbedMainPane.setEnabledAt(1, true);
-		tabbedMainPane.setEnabledAt(2, true);
+		try {
+			treeScrollPane = new JScrollPane(new SyntaxTree(MiniJava.Start()));
+		} catch (ParseException e) {
+			errorText.setText(e.getLocalizedMessage());
+		}
+		tabbedMainPane.add(treeScrollPane, "Sintaksno stablo");
 		tabbedMainPane.setSelectedIndex(1);
 	}
 	

@@ -1,8 +1,11 @@
 package hr.fer.ppj21.labos;
 
+import hr.fer.ppj21.labos.gui.CompilerGUI;
+import hr.fer.ppj21.labos.parser.MiniJava;
+import hr.fer.ppj21.labos.parser.ParseException;
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;
@@ -10,29 +13,21 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
-import hr.fer.ppj21.labos.gui.CompilerGUI;
-import hr.fer.ppj21.labos.lexer.Lexer;
-import hr.fer.ppj21.labos.lexer.util.*;
-
 public class Starter {
 
 	public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-		
 		if(args.length==1) {
-			Lexer scanner;
 			try {
-				scanner = new Lexer(new FileReader(args[0]));
-				MySymbol s;
-				do {
-					s = scanner.yylex();
-		            System.out.println(s.toString());
-		        } while (!s.getKlasa().equals(MySym.EOF));
+				new MiniJava(new FileReader(args[0]));
+				System.out.println("Sintaksno stablo uèitane datoteke:");
+				System.out.println("----------------------------------");
+				System.out.println("");
+				MiniJava.Start().dump("");
 			} catch (FileNotFoundException e1) {
 				System.err.println("Nije pronaðena datoteka!");
 				System.exit(17);
-			} catch (IOException e1) {
-				System.err.println("Greška prilikom I/O operacija");
-				System.exit(13);
+			} catch (ParseException e) {
+				System.err.println(e.currentToken.toString());
 			}
 		}
 		else if(args.length==0) {

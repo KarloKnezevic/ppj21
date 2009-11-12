@@ -8,8 +8,7 @@ options {
 PARSER_BEGIN(MiniJava) 
 package hr.fer.ppj21.labos.parser;
 import java.io.InputStream;
-public class MiniJava {
-}
+public class MiniJava {}
 PARSER_END(MiniJava)
 
 TOKEN :
@@ -223,21 +222,21 @@ void Exp() : {}
 OrExp()
 | NewObject()
 }
-void OrExp() #void : {}
+void OrExp() : {}
 {
 AndExp() ( Or() AndExp() )*
 }
-void AndExp() #void : {}
+void AndExp() : {}
 {
 NotExp() ( And() NotExp())*
 }
-void NotExp() #void : {}
+void NotExp() : {}
 {
 [ Not() ] LGEExp()
 }
-void LGEExp() #void : {}
+void LGEExp() : {}
 {
-AdditiveExpression() ( (
+AdditiveExpression()( (
 GreaterThan() | LessThan() | Equal()
 ) AdditiveExpression())*
 }
@@ -250,18 +249,18 @@ void IntegerType() : {}
 <INT>
 }
 
-void AdditiveExpression() #void : {}
+void AdditiveExpression() : {}
 {
 MultiplicativeExpression() ( (
 Plus() | Minus() )
 MultiplicativeExpression() )*
 }
-void MultiplicativeExpression() #void : {}
+void MultiplicativeExpression() : {}
 {
 UnaryExpression() ( ( Star() |
 Slash() ) UnaryExpression() )*
 }
-void UnaryExpression() #void : {}
+void UnaryExpression() : {}
 {
 [ Minus() ] Element()
 }
@@ -304,7 +303,7 @@ void Identifier() : {
 {
 	t=<ID>
   {
-    jjtThis.setValue(t.image);
+    jjtThis.setName(t.image);
   }
 }
 

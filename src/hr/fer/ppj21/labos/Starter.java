@@ -19,12 +19,12 @@ public class Starter {
 		if(args.length==1) {
 			try {
 				new MiniJava(new FileReader(args[0]));
-				System.out.println("Sintaksno stablo uèitane datoteke:");
+				System.out.println("Sintaksno stablo uÄitane datoteke:");
 				System.out.println("----------------------------------");
 				System.out.println("");
 				MiniJava.Start().dump("");
 			} catch (FileNotFoundException e1) {
-				System.err.println("Nije pronağena datoteka!");
+				System.err.println("Nije pronaÄ‘ena datoteka!");
 				System.exit(17);
 			} catch (ParseException e) {
 				System.err.println(e.currentToken.toString());
@@ -51,7 +51,7 @@ public class Starter {
 						gui.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 						gui.setVisible(true);
 					} catch (FileNotFoundException e1) {
-						System.err.println("Nije pronağena datoteka!");
+						System.err.println("Nije pronaÄ‘ena datoteka!");
 						System.exit(17);
 					}
 				}

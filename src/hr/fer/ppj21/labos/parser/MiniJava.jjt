@@ -95,17 +95,18 @@ SimpleNode Start() : {}
 Program()
 { return jjtThis; }
 }
+
 void Program() : {}
 {
-MainClass()( LOOKAHEAD(DerivedClass())
-DerivedClass() | Class() )*
+   ( LOOKAHEAD(Class() ) Class() )*  
+      MainClass()
+  ( LOOKAHEAD(Class() ) Class() )*
 }
+
 void MainClass() : {}
 {
-<CLASS> Identifier() <LBRACE>
-<PUBLIC> <STATIC> <VOID> <MAIN>
-<LPAREN> <STRING> <LBRACKET>
-<RBRACKET> <ID> <RPAREN> <LBRACE>
+<CLASS> Identifier()  [ <EXTENDS> Identifier() ]
+ <LBRACE><PUBLIC> <STATIC> <VOID> <MAIN><LPAREN> <STRING> <LBRACKET><RBRACKET> <ID> <RPAREN> <LBRACE>
 MainMethod() <RBRACE> <RBRACE>
 }
 
@@ -113,16 +114,13 @@ void MainMethod():{}
 {
 (MethodBody())*
 }
+
 void Class() : {}
 {
-<CLASS> Identifier() <LBRACE> ( Body()
-)* <RBRACE>
+<CLASS> Identifier()  [ <EXTENDS> Identifier() ]
+<LBRACE> ( Body())* <RBRACE>
 }
-void DerivedClass() : {}
-{
-<CLASS> Identifier() <EXTENDS>
-Identifier() <LBRACE> (Body() )* <RBRACE>
-}
+
 void Body() : {}
 {
 VarDecl()
@@ -220,27 +218,37 @@ Statment()
 }
 void Exp() : {}
 {
-OrExp()
-| NewObject()
+NewObject()
+| OrExp()
+| AndExp()
+| NotExp() 
+| LGEExp()
+| AdditiveExpression()
+| MultiplicativeExpression()
+| UnaryExpression()
+| Element()
 }
+
 void OrExp() #void : {}
 {
-AndExp() ( Or() AndExp() )*
+  	Element() (Or() Element())+ 
 }
+
 void AndExp() #void : {}
 {
-NotExp() ( And() NotExp())*
+	Element()(And() Element())+
 }
+
 void NotExp() #void : {}
 {
-[ Not() ] LGEExp()
+  Not() Element()
 }
+
 void LGEExp() #void : {}
 {
-AdditiveExpression() ( (
-GreaterThan() | LessThan() | Equal()
-) AdditiveExpression())*
+ Element() (GreaterThan() | LessThan() | Equal() ) Element()
 }
+
 void Integer() : {}
 {
 <INTEGER_LITERAL>
@@ -252,18 +260,15 @@ void IntegerType() : {}
 
 void AdditiveExpression() #void : {}
 {
-MultiplicativeExpression() ( (
-Plus() | Minus() )
-MultiplicativeExpression() )*
+ Element()((Plus() | Minus()) Element())+
 }
 void MultiplicativeExpression() #void : {}
 {
-UnaryExpression() ( ( Star() |
-Slash() ) UnaryExpression() )*
+  Element()(( Star() | Slash() ) Element())+ 
 }
 void UnaryExpression() #void : {}
 {
-[ Minus() ] Element()
+   Minus() Element()
 }
 void Element() : {}
 {
@@ -271,6 +276,7 @@ Integer()
 | Boolean()
 | IdentifierExp()
 | <LPAREN> Exp() <RPAREN>
+| Exp()
 }
 void IdentifierExp() : {}
 {
@@ -287,8 +293,8 @@ Exp() <RBRACKET>
 void NewObject() : {}
 {
 <NEW> (IntegerType() <LBRACKET>
-Exp() <RBRACKET> | Identifier() <LPAREN>
-<RPAREN> )
+Exp() <RBRACKET> | Identifier() <LPAREN>  ExpList() 
+<RPAREN> )	
 }
 void ExpList() : {}
 {

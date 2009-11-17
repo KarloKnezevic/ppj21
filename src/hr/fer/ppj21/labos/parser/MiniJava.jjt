@@ -86,7 +86,7 @@ SPECIAL_TOKEN :
 
 TOKEN :
 {
-< INTEGER_LITERAL: ["1"-"9"] (["0"-"9"])*>
+< INTEGER_LITERAL:(  "0" | ["1"-"9"] (["0"-"9"])*)>
 | < BOOLEAN_LITERAL: ("true"|"false")>
 }
 
@@ -95,18 +95,17 @@ SimpleNode Start() : {}
 Program()
 { return jjtThis; }
 }
-
 void Program() : {}
 {
-   ( LOOKAHEAD(Class() ) Class() )*  
-      MainClass()
-  ( LOOKAHEAD(Class() ) Class() )*
+MainClass()( LOOKAHEAD(DerivedClass())
+DerivedClass() | Class() )*
 }
-
 void MainClass() : {}
 {
-<CLASS> Identifier()  [ <EXTENDS> Identifier() ]
- <LBRACE><PUBLIC> <STATIC> <VOID> <MAIN><LPAREN> <STRING> <LBRACKET><RBRACKET> <ID> <RPAREN> <LBRACE>
+<CLASS>Identifier()<LBRACE>
+<PUBLIC> <STATIC> <VOID> <MAIN>
+<LPAREN> <STRING> <LBRACKET>
+<RBRACKET> <ID> <RPAREN> <LBRACE>
 MainMethod() <RBRACE> <RBRACE>
 }
 
@@ -114,13 +113,16 @@ void MainMethod():{}
 {
 (MethodBody())*
 }
-
 void Class() : {}
 {
-<CLASS> Identifier()  [ <EXTENDS> Identifier() ]
-<LBRACE> ( Body())* <RBRACE>
+<CLASS> Identifier() <LBRACE> ( Body()
+)* <RBRACE>
 }
-
+void DerivedClass() : {}
+{
+<CLASS> Identifier() <EXTENDS>
+Identifier() <LBRACE> (Body() )* <RBRACE>
+}
 void Body() : {}
 {
 VarDecl()
@@ -128,17 +130,17 @@ VarDecl()
 }
 void VarDecl() : {}
 {
-Type() Identifier() <ASSIGN> Exp()
+Type() Identifier() [<ASSIGN> Exp()]
 <SEMICOLON>
 }
 void MethodDecl() : {}
 {
 <PUBLIC> Type() Identifier() <LPAREN>
 FormalList() <RPAREN> <LBRACE>
-MethodBoodyBlock() <RETURN> Exp()
+MethodBodyBlock() <RETURN> Exp()
 <SEMICOLON> <RBRACE>
 }
-void MethodBoodyBlock():{}
+void MethodBodyBlock():{}
 {
 (MethodBody())*
 }
@@ -168,6 +170,7 @@ void Object() : {}
 {
 This()
 | Identifier()
+|  NewObject()
 }
 void Statment() : {}
 {
@@ -218,57 +221,68 @@ Statment()
 }
 void Exp() : {}
 {
-NewObject()
-| OrExp()
-| AndExp()
-| NotExp() 
-| LGEExp()
-| AdditiveExpression()
-| MultiplicativeExpression()
-| UnaryExpression()
-| Element()
+LOOKAHEAD(OrExp()) OrExp()
+| LOOKAHEAD(AndExp()
+) AndExp()
+| LOOKAHEAD(NotExp()
+) NotExp()
+| LOOKAHEAD(LGEExp()
+) LGEExp()
+| LOOKAHEAD(AdditiveExpression()
+) AdditiveExpression()
+| LOOKAHEAD(MultiplicativeExpression()
+) MultiplicativeExpression()
+| LOOKAHEAD(IdentifierExp()
+) IdentifierExp()
+| LOOKAHEAD(UnaryExpression()
+) UnaryExpression()
+| NewObject()
+}
+void OrExp() : {}
+{
+Element() ( Or() Element() )+
+}
+void AndExp() : {}
+{
+Element() ( And() Element() )+
+}
+void NotExp() : {}
+{
+( Not() Element() )+
+}
+void LGEExp() : {}
+{
+Element()( (
+GreaterThan() | LessThan() | Equal()
+) Element())+
+}
+void Integer() : {
+  Token t;
+}
+{
+	t=<INTEGER_LITERAL>
+  {
+    jjtThis.setValue(t.image);
+  }
+}
+void IntegerType() : {}{
+ <INT>
 }
 
-void OrExp() #void : {}
+void AdditiveExpression() : {}
 {
-  	Element() (Or() Element())+ 
+Element() ( (
+Plus() | Minus() )
+Element() )+
 }
-
-void AndExp() #void : {}
+void MultiplicativeExpression() : {}
 {
-	Element()(And() Element())+
+Element() ( ( Star() |
+Slash() ) Element() )+
 }
-
-void NotExp() #void : {}
+void UnaryExpression() : {}
 {
-  Not() Element()
-}
-
-void LGEExp() #void : {}
-{
- Element() (GreaterThan() | LessThan() | Equal() ) Element()
-}
-
-void Integer() : {}
-{
-<INTEGER_LITERAL>
-}
-void IntegerType() : {}
-{
-<INT>
-}
-
-void AdditiveExpression() #void : {}
-{
- Element()((Plus() | Minus()) Element())+
-}
-void MultiplicativeExpression() #void : {}
-{
-  Element()(( Star() | Slash() ) Element())+ 
-}
-void UnaryExpression() #void : {}
-{
-   Minus() Element()
+[ Minus() ] Element()
 }
 void Element() : {}
 {
@@ -276,7 +290,6 @@ Integer()
 | Boolean()
 | IdentifierExp()
 | <LPAREN> Exp() <RPAREN>
-| Exp()
 }
 void IdentifierExp() : {}
 {
@@ -293,8 +306,8 @@ Exp() <RBRACKET>
 void NewObject() : {}
 {
 <NEW> (IntegerType() <LBRACKET>
-Exp() <RBRACKET> | Identifier() <LPAREN>  ExpList() 
-<RPAREN> )	
+Exp() <RBRACKET> | Identifier() <LPAREN>
+<RPAREN> )
 }
 void ExpList() : {}
 {

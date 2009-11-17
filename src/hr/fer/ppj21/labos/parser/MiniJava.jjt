@@ -86,7 +86,7 @@ SPECIAL_TOKEN :
 
 TOKEN :
 {
-< INTEGER_LITERAL:(  "0" | ["1"-"9"] (["0"-"9"])*)>
+< INTEGER_LITERAL: "0" | ["1"-"9"] (["0"-"9"])*>
 | < BOOLEAN_LITERAL: ("true"|"false")>
 }
 
@@ -102,7 +102,7 @@ DerivedClass() | Class() )*
 }
 void MainClass() : {}
 {
-<CLASS>Identifier()<LBRACE>
+<CLASS> Identifier() <LBRACE>
 <PUBLIC> <STATIC> <VOID> <MAIN>
 <LPAREN> <STRING> <LBRACKET>
 <RBRACKET> <ID> <RPAREN> <LBRACE>
@@ -137,10 +137,10 @@ void MethodDecl() : {}
 {
 <PUBLIC> Type() Identifier() <LPAREN>
 FormalList() <RPAREN> <LBRACE>
-MethodBodyBlock() <RETURN> Exp()
+MethodBoodyBlock() <RETURN> Exp()
 <SEMICOLON> <RBRACE>
 }
-void MethodBodyBlock():{}
+void MethodBoodyBlock():{}
 {
 (MethodBody())*
 }
@@ -221,40 +221,27 @@ Statment()
 }
 void Exp() : {}
 {
-LOOKAHEAD(OrExp()) OrExp()
-| LOOKAHEAD(AndExp()
-) AndExp()
-| LOOKAHEAD(NotExp()
-) NotExp()
-| LOOKAHEAD(LGEExp()
-) LGEExp()
-| LOOKAHEAD(AdditiveExpression()
-) AdditiveExpression()
-| LOOKAHEAD(MultiplicativeExpression()
-) MultiplicativeExpression()
-| LOOKAHEAD(IdentifierExp()
-) IdentifierExp()
-| LOOKAHEAD(UnaryExpression()
-) UnaryExpression()
-| NewObject()
+  LOOKAHEAD(OrExp())
+OrExp()
+|  NewObject()
 }
-void OrExp() : {}
+void OrExp() #void : {}
 {
-Element() ( Or() Element() )+
+AndExp() ( Or() AndExp() )*
 }
-void AndExp() : {}
+void AndExp() #void : {}
 {
-Element() ( And() Element() )+
+NotExp() ( And() NotExp())*
 }
-void NotExp() : {}
+void NotExp() #void : {}
 {
-( Not() Element() )+
+[ Not() ] LGEExp()
 }
-void LGEExp() : {}
+void LGEExp() #void : {}
 {
-Element()( (
+AdditiveExpression()( (
 GreaterThan() | LessThan() | Equal()
-) Element())+
+) AdditiveExpression())*
 }
 void Integer() : {
   Token t;
@@ -265,22 +252,23 @@ void Integer() : {
     jjtThis.setValue(t.image);
   }
 }
-void IntegerType() : {}{
- <INT>
+void IntegerType() : {}
+{
+<INT>
 }
 
-void AdditiveExpression() : {}
+void AdditiveExpression() #void : {}
 {
-Element() ( (
+MultiplicativeExpression() ( (
 Plus() | Minus() )
-Element() )+
+MultiplicativeExpression() )*
 }
-void MultiplicativeExpression() : {}
+void MultiplicativeExpression() #void : {}
 {
-Element() ( ( Star() |
-Slash() ) Element() )+
+UnaryExpression() ( ( Star() |
+Slash() ) UnaryExpression() )*
 }
-void UnaryExpression() : {}
+void UnaryExpression() #void : {}
 {
 [ Minus() ] Element()
 }

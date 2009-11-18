@@ -2,6 +2,7 @@ package hr.fer.ppj21.labos.gui;
 
 import hr.fer.ppj21.labos.parser.MiniJava;
 import hr.fer.ppj21.labos.parser.ParseException;
+import hr.fer.ppj21.labos.parser.TokenMgrError;
 import hr.fer.ppj21.labos.parser.tree.SyntaxTree;
 
 import java.awt.BorderLayout;
@@ -185,6 +186,8 @@ public class CompilerGUI extends JFrame {
 			tabbedMainPane.add(treeScrollPane, "Sintaksno stablo");
 			tabbedMainPane.setSelectedIndex(1);
 		} catch (ParseException e) {
+			errorText.setText(e.getLocalizedMessage());
+		} catch (TokenMgrError e) {
 			errorText.setText(e.getLocalizedMessage());
 		}
 		

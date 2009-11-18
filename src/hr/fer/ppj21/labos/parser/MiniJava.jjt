@@ -21,6 +21,7 @@ TOKEN :
 | < THIS: "this">
 | < EXTENDS: "extends">
 | < PUBLIC: "public">
+| < PRIVATE: "private">
 | < STATIC: "static">
 | < VOID: "void">
 | < RETURN: "return">
@@ -28,6 +29,7 @@ TOKEN :
 | < IF: "if">
 | < ELSE: "else">
 | < WHILE: "while">
+| < DO: "do">
 | < PRINT: "System.out.println">
 | < NEW: "new">
 | < STRING: "String">
@@ -67,6 +69,8 @@ TOKEN :
 < ASSIGN: "=" >
 | < GT: ">" >
 | < LT: "<" >
+| < GE: ">=" >
+| < LE: "<=" >
 | < NOT: "!" >
 | < EQ: "==" >
 | < OR: "||" >
@@ -102,7 +106,7 @@ DerivedClass() | Class() )*
 }
 void MainClass() : {}
 {
-<CLASS> Identifier() <LBRACE>
+[<PUBLIC>]<CLASS> Identifier() <LBRACE>
 <PUBLIC> <STATIC> <VOID> <MAIN>
 <LPAREN> <STRING> <LBRACKET>
 <RBRACKET> <ID> <RPAREN> <LBRACE>
@@ -115,7 +119,7 @@ void MainMethod():{}
 }
 void Class() : {}
 {
-<CLASS> Identifier() <LBRACE> ( Body()
+[<PUBLIC>|<PRIVATE>]<CLASS> Identifier() <LBRACE> ( Body()
 )* <RBRACE>
 }
 void DerivedClass() : {}
@@ -130,7 +134,8 @@ VarDecl()
 }
 void VarDecl() : {}
 {
-Type() Identifier() [<ASSIGN> Exp()]
+Type() Identifier() [<ASSIGN> Exp()]( <COMMA>Identifier() [<ASSIGN> Exp()]
+)*
 <SEMICOLON>
 }
 void MethodDecl() : {}
@@ -176,6 +181,7 @@ void Statment() : {}
 {
 LOOKAHEAD(IfElse()) IfElse()
 | If()
+| DoWhile()
 | While()
 | Print()
 | Assignment()
@@ -214,6 +220,12 @@ void Print() : {}
 <PRINT> <LPAREN> Exp() <RPAREN>
 <SEMICOLON>
 }
+void DoWhile() : {}
+{
+<DO>
+Statment()
+<WHILE><LPAREN> Exp() <RPAREN>
+}
 void While() : {}
 {
 <WHILE> <LPAREN> Exp() <RPAREN>
@@ -240,7 +252,7 @@ void NotExp() #void : {}
 void LGEExp() #void : {}
 {
 AdditiveExpression()( (
-GreaterThan() | LessThan() | Equal()
+  GreaterThanOrEqual() | LessThanOrEqual() | GreaterThan() | LessThan() | Equal()
 ) AdditiveExpression())*
 }
 void Integer() : {
@@ -375,6 +387,14 @@ void LessThan() : {}
 void GreaterThan() : {}
 {
 <GT>
+}
+void LessThanOrEqual() : {}
+{
+<LE>
+}
+void GreaterThanOrEqual() : {}
+{
+<GE>
 }
 void This() : {}
 {

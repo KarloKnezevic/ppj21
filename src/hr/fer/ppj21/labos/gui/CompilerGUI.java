@@ -41,7 +41,6 @@ public class CompilerGUI extends JFrame {
 	private RSyntaxTextArea sourceText = new RSyntaxTextArea();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
 	private JTextArea errorText = new JTextArea();
-	private JPanel treePanel;
 	private JScrollPane treeScrollPane;
 	private boolean firstCompilation = true;
 	
@@ -78,10 +77,10 @@ public class CompilerGUI extends JFrame {
 						sourceText.read(new FileReader(file), file);
 						tabbedMainPane.setSelectedIndex(0);
 					} catch (FileNotFoundException e1) {
-						System.err.println("Nije pronaðena datoteka!");
+						System.err.println("Nije pronaï¿½ena datoteka!");
 						System.exit(17);
 					} catch (IOException e1) {
-						System.err.println("Greška prilikom I/O operacija");
+						System.err.println("Greï¿½ka prilikom I/O operacija");
 						System.exit(13);
 					}
 				}
@@ -99,10 +98,10 @@ public class CompilerGUI extends JFrame {
 					try {
 						sourceText.write(new FileWriter(file));
 					} catch (FileNotFoundException e1) {
-						System.err.println("Nije pronaðena datoteka!");
+						System.err.println("Nije pronadjena datoteka!");
 						System.exit(17);
 					} catch (IOException e1) {
-						System.err.println("Greška prilikom I/O operacija");
+						System.err.println("Greska prilikom I/O operacija");
 						System.exit(13);
 					}
 				}
@@ -135,7 +134,7 @@ public class CompilerGUI extends JFrame {
 				try {
 					doCompile();
 				} catch (IOException e1) {
-					System.err.println("Greška prilikom I/O operacija");
+					System.err.println("Greska prilikom I/O operacija");
 					System.exit(13);
 				}
 			}
@@ -156,7 +155,7 @@ public class CompilerGUI extends JFrame {
 		tabbedMainPane.addTab("Source code", sourcePanel);
 		
 		JPanel errorPanel = new JPanel(new BorderLayout());
-		errorPanel.setPreferredSize(new Dimension(500,100));
+		errorPanel.setPreferredSize(new Dimension(500,130));
 		errorPanel.setBorder(new TitledBorder("Errors:"));
 		JScrollPane scrollPane3 = new JScrollPane(errorText);
 		errorPanel.add(scrollPane3, BorderLayout.CENTER);
@@ -174,7 +173,7 @@ public class CompilerGUI extends JFrame {
 		errorText.setText("");
 		if(firstCompilation) {
 			new MiniJava(new ByteArrayInputStream(sourceText.getText().getBytes()));
-			treePanel = new JPanel(new BorderLayout());
+			new JPanel(new BorderLayout());
 			firstCompilation=false;
 		}
 		else {
@@ -183,11 +182,12 @@ public class CompilerGUI extends JFrame {
 		}
 		try {
 			treeScrollPane = new JScrollPane(new SyntaxTree(MiniJava.Start()));
+			tabbedMainPane.add(treeScrollPane, "Sintaksno stablo");
+			tabbedMainPane.setSelectedIndex(1);
 		} catch (ParseException e) {
 			errorText.setText(e.getLocalizedMessage());
 		}
-		tabbedMainPane.add(treeScrollPane, "Sintaksno stablo");
-		tabbedMainPane.setSelectedIndex(1);
+		
 	}
 	
 }

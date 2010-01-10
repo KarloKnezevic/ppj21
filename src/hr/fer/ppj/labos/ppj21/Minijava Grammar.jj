@@ -1,0 +1,223 @@
+options{
+	STATIC = false;
+}
+
+PARSER_BEGIN(MiniJava)
+
+import java.io.*;
+
+public class MiniJava{
+  public static void main(String [] args) throws ParseException, IOException {
+    MiniJava parser = new MiniJava (new BufferedReader(new FileReader(new File(args[0]))));
+    parser.Goal();
+    System.out.println("No parse error occurred!");
+  }
+
+}
+
+PARSER_END(MiniJava)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| <ONE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <MULTI_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+| <OTHER_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN :
+{
+  <INTEGER_LITERAL: (["1"-"9"] ( ["0"-"9"] )*|"0") >
+|  
+  <IF: "if">
+|  
+  <INT: "int">
+|  
+  <NEW: "new">
+|  
+  <VOID: "void">
+|  
+  <ELSE: "else">
+|  
+  <TRUE: "true">
+|  
+  <MAIN: "main">
+|  
+  <THIS: "this">
+|  
+  <WHILE: "while">
+|  
+  <FALSE: "false">
+|  
+  <CLASS: "class">
+|  
+  <PUBLIC: "public">
+|  
+  <STATIC: "static">
+|  
+  <STRING: "String">
+|  
+  <LENGTH: "length">
+|  
+  <RETURN: "return">
+|  
+  <BOOLEAN: "boolean">
+|  
+  <EXTENDS: "extends">
+|
+  <IDENTIFIER: ["a"-"z","A"-"Z","_"] ( ["a"-"z","A"-"Z","_","0"-"9"] )* >
+}
+
+void Goal() :
+{}
+{
+	MainClass()
+	(
+		ClassDeclaration()
+	)*
+	<EOF>
+}
+
+
+void MainClass() :
+{}
+{
+	<CLASS> Identifier()
+	"{"
+		<PUBLIC><STATIC><VOID><MAIN>"("<STRING>"[""]"Identifier()")"
+		"{"
+			Statement()
+		"}"
+	"}"
+}
+
+
+void ClassDeclaration() :
+{}
+{
+	<CLASS> Identifier() (<EXTENDS>	Identifier())? 
+	"{"
+		(VarDeclaration())*
+		(MethodDeclaration())*
+	"}"
+}
+
+
+void VarDeclaration() :
+{}
+{
+	Type() Identifier() ";"
+}
+
+
+void MethodDeclaration() :
+{}
+{
+	<PUBLIC> Type() Identifier() "(" (Type() Identifier()(","Type()Identifier())*)?")"
+	"{"
+		(
+			LOOKAHEAD(2)
+			VarDeclaration()
+		)*
+		(
+			Statement()
+		)*
+		<RETURN>Exp()";"
+	"}"
+}
+
+
+void Type() :
+{}
+{
+	LOOKAHEAD(2) <INT> "[" "]" | <INT> | <BOOLEAN> | Identifier()
+}
+
+
+void Statement() :
+{}
+{
+	"{"	( Statement() )* "}"
+|
+	<IF> "(" Exp() ")"
+		Statement()
+	<ELSE>
+		Statement()
+|
+	<WHILE>	"(" Exp()")"
+		Statement()
+|
+	"System.out.println" "(" Exp() ")" ";"
+|
+	LOOKAHEAD(2)
+	Identifier() "=" Exp() ";"
+|
+	Identifier() "[" Exp() "]" "=" Exp() ";"
+}
+
+void Exp() :
+{}
+{
+	BoolExp() ("&&" BoolExp())*
+}
+
+void BoolExp() :
+{}
+{
+	MathExp() ("<" MathExp())?
+}
+
+void MathExp() :
+{}
+{
+	Term() (("+" | "-") Term())*
+}
+
+void Term() :
+{}
+{
+	Factor() ("*" Factor())*
+}
+
+void Factor() :
+{}
+{
+	( "!" )*
+	( 	LOOKAHEAD(2)
+		<NEW> <INT> "[" Exp() "]" 
+		| <NEW> Identifier() "(" ")" 
+		| Atom() 
+	)
+	(
+		LOOKAHEAD(2)
+		"." <LENGTH> 
+		| "." Identifier() "(" ( Exp() ( "," Exp() )* )? ")"
+		| "[" Exp() "]"
+	)*
+}
+
+void Atom() :
+{}
+{
+	"(" Exp() ")"
+	| Identifier()
+	| <INTEGER_LITERAL>
+	| <TRUE>
+	| <FALSE>
+	| <THIS>
+}
+
+void Exps() :
+{}
+{
+	Exp() ("," Exp())*
+}
+
+void Identifier() :
+{}
+{
+	<IDENTIFIER>
+}

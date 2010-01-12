@@ -33,8 +33,7 @@ public class Encoder {
 
 	private static void prologue(PrintStream output){
 		output.println("*-------------------------------------------------------");
-		output.println("* This source code has been automatically generated!");
-		output.println("* By: Abbas Mehrabian & Pooya Esfandiar");
+		output.println("* Automatski generiran kod!");
 		output.println("*-------------------------------------------------------");
 		output.println("\nSTART\tORG\t$0\n");
 		output.println("\tMOVE.L\t#"+TEMP_STACK_OFFSET+", "+TEMP_STACK);

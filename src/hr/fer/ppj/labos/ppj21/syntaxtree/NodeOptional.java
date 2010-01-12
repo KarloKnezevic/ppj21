@@ -3,6 +3,7 @@
 //
 
 package hr.fer.ppj.labos.ppj21.syntaxtree;
+import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 import hr.fer.ppj.labos.ppj21.visitor.*;
 
 /**
@@ -34,6 +35,10 @@ public NodeOptional() {
    public Object accept(ObjectVisitor v, Object argu) throws Exception {
       return v.visit(this,argu);
    }
+   public Object accept(SimpleNodeVisitor v) throws Exception {
+		return v.visit(this);
+	}
+
    public boolean present()   { return node != null; }
 
    public Node node;

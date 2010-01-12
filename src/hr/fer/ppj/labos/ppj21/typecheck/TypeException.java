@@ -23,4 +23,11 @@ public class TypeException extends Exception {
 	public String getMessage(){
 		return super.getMessage() + " at line:" + token.beginLine + " column:" + token.beginColumn;
 	}
+	
+	public String getMes() {
+		return super.getMessage();
+	}
+	public NodeToken getToken() {
+		return token;
+	}
 }

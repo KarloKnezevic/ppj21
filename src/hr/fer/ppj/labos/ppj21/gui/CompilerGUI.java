@@ -1,11 +1,19 @@
 package hr.fer.ppj.labos.ppj21.gui;
 
-import hr.fer.ppj.labos.ppj21.parse.*;
+import hr.fer.ppj.labos.ppj21.parse.ParseException;
+import hr.fer.ppj.labos.ppj21.parse.Parser;
+import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
+import hr.fer.ppj.labos.ppj21.syntaxtree.Program;
+import hr.fer.ppj.labos.ppj21.typecheck.SymbolTableVisitor;
+import hr.fer.ppj.labos.ppj21.typecheck.TypeCheckerVisitor;
 
+import java.applet.Applet;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.ByteArrayInputStream;
@@ -15,6 +23,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -27,10 +36,12 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.text.BadLocationException;
 
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 public class CompilerGUI extends JFrame {
 
@@ -38,9 +49,11 @@ public class CompilerGUI extends JFrame {
 	private File file;
 	private RSyntaxTextArea sourceText = new RSyntaxTextArea();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
-	private JTextArea errorText = new JTextArea();
+	public static JTextArea errorText = new JTextArea();
 	private JScrollPane treeScrollPane;
+	public static RTextScrollPane scrollPane1;
 	private boolean firstCompilation = true;
+	Parser parser;
 	
 	public CompilerGUI() throws FileNotFoundException {
 		super();
@@ -62,6 +75,22 @@ public class CompilerGUI extends JFrame {
 		JMenuItem fileSave = new JMenuItem("Save");
 		JMenuItem fileClear = new JMenuItem("Clear");
 		JMenuItem fileExit = new JMenuItem("Exit");
+		sourceText.addKeyListener(new KeyListener() {
+			public void keyTyped(KeyEvent e) {
+			}
+			@Override
+			public void keyReleased(KeyEvent e) {
+				try {
+					scrollPane1.getGutter().removeAllTrackingIcons();
+					doCompile();
+				} catch (IOException e1) {}
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent e) {
+				
+			}
+		});
 		fileOpen.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -148,16 +177,19 @@ public class CompilerGUI extends JFrame {
 		menuBar.add(compileMenu);
 	
 		JPanel sourcePanel = new JPanel(new BorderLayout());
-		JScrollPane scrollPane1 = new JScrollPane(sourceText);
+		scrollPane1 = new RTextScrollPane(sourceText);
+		scrollPane1.setIconRowHeaderEnabled(true);
+		ImageIcon bookmarkIcon = createImageIcon("bookmark.gif","Bookmark");
+		scrollPane1.getGutter().setBookmarkIcon(bookmarkIcon);
+		scrollPane1.getGutter().setBookmarkingEnabled(true);
+		sourceText.setUseFocusableTips(true);
 		sourcePanel.add(scrollPane1, BorderLayout.CENTER);
 		tabbedMainPane.addTab("Source code", sourcePanel);
-		
 		JPanel errorPanel = new JPanel(new BorderLayout());
 		errorPanel.setPreferredSize(new Dimension(500,130));
 		errorPanel.setBorder(new TitledBorder("Errors:"));
 		JScrollPane scrollPane3 = new JScrollPane(errorText);
 		errorPanel.add(scrollPane3, BorderLayout.CENTER);
-	
 		sourcePanel.add(errorPanel, BorderLayout.SOUTH);
 		tabbedMainPane.addTab("Source", sourcePanel);
 		
@@ -170,24 +202,57 @@ public class CompilerGUI extends JFrame {
 	private void doCompile() throws IOException {
 		errorText.setText("");
 		if(firstCompilation) {
-			new Parser(new ByteArrayInputStream(sourceText.getText().getBytes()));
+			parser = new Parser(new ByteArrayInputStream(sourceText.getText().getBytes()));
 			new JPanel(new BorderLayout());
 			firstCompilation=false;
 		}
 		else {
 			Parser.ReInit(new ByteArrayInputStream(sourceText.getText().getBytes()));
 			tabbedMainPane.remove(treeScrollPane);
-		}
+		}	
+		Program program;
+		System.out.println("Parsing starts...");
 		try {
-			treeScrollPane = new JScrollPane(new SyntaxTree(Parser.));
-			tabbedMainPane.add(treeScrollPane, "Sintaksno stablo");
-			tabbedMainPane.setSelectedIndex(1);
-		} catch (ParseException e) {
-			errorText.setText(e.getLocalizedMessage());
+			program = parser.program();
+			System.out.println("Parsing completed without error");
 		} catch (TokenMgrError e) {
-			errorText.setText(e.getLocalizedMessage());
+	           System.out.println("Invalid token " + e.getMessage());
+	           return;
+	    }
+		catch (ParseException e) {
+			try {
+				CompilerGUI.errorText.setText(CompilerGUI.errorText.getText() + e.getMessage() + "\n");
+				CompilerGUI.scrollPane1.getGutter().addLineTrackingIcon(e.currentToken.beginLine-1, createImageIcon("error.gif",e.getMessage()));
+			} catch (BadLocationException e1) {
+			}
+			System.out.println("Syntax error occured, compilation halts.");
+			return;
 		}
-		
+
+		System.out.println("Type-checking starts...");
+		SymbolTableVisitor symbolTableVisitor = new SymbolTableVisitor();
+		try {
+			program.accept(symbolTableVisitor);
+			TypeCheckerVisitor typeChecker = new TypeCheckerVisitor(symbolTableVisitor.getSymbolTable());
+			program.accept(typeChecker);
+			System.out.println("Type-checking completed without error");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			System.out.println("Type-check error occured, compilation halts.");
+			return;
+		}
 	}
+	
+	public ImageIcon createImageIcon(String path, String description) {
+		java.net.URL imgURL = getClass().getResource(path);
+		if (imgURL != null) {
+			ImageIcon i = new ImageIcon(imgURL, description);
+			return i;
+		} else {
+			System.err.println("Couldn't find file: " + path);
+			return null;
+		}
+	}
+
 	
 }

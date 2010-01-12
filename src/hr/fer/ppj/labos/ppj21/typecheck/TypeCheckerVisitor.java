@@ -1,8 +1,13 @@
 
 package hr.fer.ppj.labos.ppj21.typecheck;
+import hr.fer.ppj.labos.ppj21.gui.CompilerGUI;
 import hr.fer.ppj.labos.ppj21.syntaxtree.*;
 import hr.fer.ppj.labos.ppj21.visitor.Visitor;
+
+import java.io.File;
 import java.util.*;
+
+import javax.swing.ImageIcon;
 
 /**
 * Checks the type of each node, and throws meaningful exceptions.
@@ -163,7 +168,11 @@ public class TypeCheckerVisitor implements Visitor {
 				throw new TypeException("Invalid return Type!", n.f9);
 		} catch (Exception e) {
 			hadTypeCheckError = true;
-			System.out.println(e.getMessage());
+			if(e instanceof TypeException) {
+				TypeException e1=(TypeException)e;
+				CompilerGUI.scrollPane1.getGutter().addLineTrackingIcon(e1.getToken().beginLine-1, createImageIcon("error.gif",e.getMessage()));
+				CompilerGUI.errorText.setText(CompilerGUI.errorText.getText() + e.getMessage() + "\n");
+			}
 		}
 
 		currentPath = tempPath;
@@ -247,7 +256,11 @@ public class TypeCheckerVisitor implements Visitor {
 			}
 		} catch (Exception e) {
 			hadTypeCheckError = true;
-			System.out.println(e.getMessage());
+			if(e instanceof TypeException) {
+				TypeException e1=(TypeException)e;
+				CompilerGUI.scrollPane1.getGutter().addLineTrackingIcon(e1.getToken().beginLine-1, createImageIcon("error.gif",e.getMessage()));
+				CompilerGUI.errorText.setText(CompilerGUI.errorText.getText() + e.getMessage() + "\n");
+			}
 		}
 	}
 
@@ -437,5 +450,15 @@ public class TypeCheckerVisitor implements Visitor {
 			throw new TypeException("Identifier can not be resolved!", n.f0);
 
 		tempType = typeName;
+	}
+	
+	private ImageIcon createImageIcon(String path, String description) {
+		java.net.URL imgURL = getClass().getResource(path);
+		if (imgURL != null) {
+			return new ImageIcon(imgURL, description);
+		} else {
+			System.err.println("Couldn't find file: " + path);
+			return null;
+		}
 	}
 }

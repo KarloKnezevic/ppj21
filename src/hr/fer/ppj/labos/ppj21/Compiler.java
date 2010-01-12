@@ -10,8 +10,12 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Vector;
 
+import EDU.purdue.jtb.visitor.DepthFirstVisitor;
+
 import hr.fer.ppj.labos.ppj21.canon.Canon;
 import hr.fer.ppj.labos.ppj21.encoder.Encoder;
+import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNode;
+import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 
 import hr.fer.ppj.labos.ppj21.parse.ParseException;
 import hr.fer.ppj.labos.ppj21.parse.Parser;

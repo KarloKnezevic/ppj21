@@ -5,7 +5,7 @@ import java.util.*;
 
 import hr.fer.ppj.labos.ppj21.tree.*;
 
-public class Encoder {
+public class Assem {
 	static int curLabel;
 	static boolean labelFlag;
 

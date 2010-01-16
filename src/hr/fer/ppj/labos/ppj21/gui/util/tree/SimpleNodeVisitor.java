@@ -1,6 +1,6 @@
 package hr.fer.ppj.labos.ppj21.gui.util.tree;
 
-import hr.fer.ppj.labos.ppj21.syntaxtree.*;
+import hr.fer.ppj.labos.ppj21.ast.*;
 
 public class SimpleNodeVisitor {
 

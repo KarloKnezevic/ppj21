@@ -7,7 +7,7 @@ import javax.swing.ImageIcon;
 import javax.swing.text.BadLocationException;
 
 import hr.fer.ppj.labos.ppj21.gui.CompilerGUI;
-import hr.fer.ppj.labos.ppj21.typecheck.TypeException;
+import hr.fer.ppj.labos.ppj21.semantika.TypeException;
 
 public class TokenMgrError extends Error
 {

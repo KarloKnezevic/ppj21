@@ -1,11 +1,17 @@
 package hr.fer.ppj.labos.ppj21.gui;
 
+import hr.fer.ppj.labos.ppj21.assem.Encoder;
+import hr.fer.ppj.labos.ppj21.ast.Program;
+import hr.fer.ppj.labos.ppj21.canon.Canon;
+import hr.fer.ppj.labos.ppj21.medjukod.ActivationRecordsVisitor;
+import hr.fer.ppj.labos.ppj21.medjukod.TranslationVisitor;
 import hr.fer.ppj.labos.ppj21.parse.ParseException;
 import hr.fer.ppj.labos.ppj21.parse.Parser;
 import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
-import hr.fer.ppj.labos.ppj21.syntaxtree.Program;
-import hr.fer.ppj.labos.ppj21.typecheck.SymbolTableVisitor;
-import hr.fer.ppj.labos.ppj21.typecheck.TypeCheckerVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.SymbolTableVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.TypeCheckerVisitor;
+import hr.fer.ppj.labos.ppj21.tree.Print;
+import hr.fer.ppj.labos.ppj21.tree.Stm;
 
 import java.applet.Applet;
 import java.awt.BorderLayout;
@@ -19,9 +25,13 @@ import java.awt.event.MouseListener;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Vector;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -241,6 +251,48 @@ public class CompilerGUI extends JFrame {
 			System.out.println("Type-check error occured, compilation halts.");
 			return;
 		}
+		System.out.println("Start of making activation records...");
+		ActivationRecordsVisitor activationRecordsVisitor = new ActivationRecordsVisitor();
+		try {
+			program.accept(activationRecordsVisitor);
+			System.out.println("Making activation records completed without error");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			System.out.println("Making activation records error occured, compilation halts.");
+			e.printStackTrace();
+			return;
+		}
+		System.out.println("Start of translating to IR...");
+		Stm programTree;
+		TranslationVisitor translationVisitor = new TranslationVisitor(
+				activationRecordsVisitor.getOffsets(), activationRecordsVisitor.getSizes(),
+				symbolTableVisitor.getSymbolTable(), activationRecordsVisitor.getChildren());
+		try {
+			programTree = (Stm) program.accept(translationVisitor);
+			System.out.println("Translating to IR completed without error");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			System.out.println("Translating to IR error occured, compilation halts.");
+			e.printStackTrace();
+			return;
+		}
+
+		System.out.println("Start of Canonicalizing...");
+		Stm canonizedTree  = Canon.toCanonicalForm(programTree);
+		System.out.println("Canonicalized completed successfully!");
+		
+		System.out.println("Start to listing...");
+		List<Stm> programList = Canon.toStmList(canonizedTree);
+		System.out.println("Listed completed successfully!");
+		
+		
+		System.out.println("Start to coding...");
+		try {
+			Encoder.encode(programList, new PrintStream(new FileOutputStream("output.x68")));
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		System.out.println("coding completed successfully!\nThe assembly file is now available in output.x68");
 	}
 	
 	public ImageIcon createImageIcon(String path, String description) {

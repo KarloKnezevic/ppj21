@@ -3,7 +3,7 @@
 //
 
 package hr.fer.ppj.labos.ppj21.visitor;
-import hr.fer.ppj.labos.ppj21.syntaxtree.*;
+import hr.fer.ppj.labos.ppj21.ast.*;
 
 /**
  * All Object visitors must implement this interface.

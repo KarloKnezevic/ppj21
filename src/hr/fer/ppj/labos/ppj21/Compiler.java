@@ -8,25 +8,26 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Vector;
 
 import EDU.purdue.jtb.visitor.DepthFirstVisitor;
 
+import hr.fer.ppj.labos.ppj21.assem.Encoder;
+import hr.fer.ppj.labos.ppj21.ast.Program;
 import hr.fer.ppj.labos.ppj21.canon.Canon;
-import hr.fer.ppj.labos.ppj21.encoder.Encoder;
 import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNode;
 import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 
+import hr.fer.ppj.labos.ppj21.medjukod.ActivationRecordsVisitor;
+import hr.fer.ppj.labos.ppj21.medjukod.TranslationVisitor;
 import hr.fer.ppj.labos.ppj21.parse.ParseException;
 import hr.fer.ppj.labos.ppj21.parse.Parser;
 import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
-import hr.fer.ppj.labos.ppj21.syntaxtree.Program;
-import hr.fer.ppj.labos.ppj21.translation.ActivationRecordsVisitor;
-import hr.fer.ppj.labos.ppj21.translation.TranslationVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.SymbolTableVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.TypeCheckerVisitor;
 import hr.fer.ppj.labos.ppj21.tree.Print;
 import hr.fer.ppj.labos.ppj21.tree.Stm;
-import hr.fer.ppj.labos.ppj21.typecheck.SymbolTableVisitor;
-import hr.fer.ppj.labos.ppj21.typecheck.TypeCheckerVisitor;
 
 public class Compiler {
 	public static void main(String[] args) {
@@ -112,19 +113,12 @@ public class Compiler {
 		}
 
 		System.out.println("Start of Canonicalizing...");
-		Stm canonizedTree  = Canon.canonize(programTree);
+		Stm canonizedTree  = Canon.toCanonicalForm(programTree);
 		System.out.println("Canonicalized completed successfully!");
 		
 		System.out.println("Start to listing...");
-		Vector<Stm> programList = Canon.linearize(canonizedTree);
+		List<Stm> programList = Canon.toStmList(canonizedTree);
 		System.out.println("Listed completed successfully!");
-		
-		try {
-			PrintStream ps = new PrintStream(new FileOutputStream("canon.txt"));
-			Canon.print(programList, ps);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		
 		System.out.println("Start to coding...");
 		try {

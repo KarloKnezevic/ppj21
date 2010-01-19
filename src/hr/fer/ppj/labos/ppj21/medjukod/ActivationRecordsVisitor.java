@@ -11,42 +11,11 @@ public class ActivationRecordsVisitor implements Visitor {
 	
 	Map<String, Integer> varOffset, constructSize;
 	Map<String, ArrayList<String>> children;
-	HashSet<String> added = new HashSet<String>();
+	HashSet<String> addedClassesSet = new HashSet<String>();
 
 	int offset;
-	boolean inside;
-	String curPath;
-
-	public Map<String, Integer> getOffsets() {
-		return varOffset;
-	}
-
-	public Map<String, ArrayList<String>> getChildren() {
-		return children;
-	}
-
-	int getOffset(String varName) {
-		if (!varOffset.containsKey((varName)))
-			throw new Error("Variable not found: " + varName);
-		return (varOffset.get(varName)).intValue();
-	}
-
-	void setOffset(String varName) {
-		varOffset.put(varName, new Integer(offset));
-		//ako smo unutar metode, varijable stavljamo na stog, inače idu na heap
-		if (inside)
-			offset -= WORDSIZE;
-		else
-			offset += WORDSIZE;
-	}
-
-	public Map<String, Integer> getSizes() {
-		return constructSize;
-	}
-	
-	void setSize(String construct, int size) {
-		constructSize.put(construct, new Integer(size));
-	}
+	boolean insideMethod;
+	String cPath;
 
 	public void visit(NodeList n) throws Exception {
 		for (Node it : n.nodes)
@@ -77,16 +46,16 @@ public class ActivationRecordsVisitor implements Visitor {
 	 * f2 -> <EOF>
 	 */
 	public void visit(Program n) throws Exception {
-		inside = false;
+		insideMethod = false;
 		//inicijalizacija vrijednosti
-		curPath = "";
+		cPath = "";
 		varOffset = new TreeMap<String, Integer>();
 		constructSize = new TreeMap<String, Integer>();
 		children = new TreeMap<String, ArrayList<String>>();
 		(n.f0).accept(this);
-		int oldAc = -1;
-		while (oldAc < added.size()) {
-			oldAc = added.size();
+		int addedCountOld = -1;
+		while (addedCountOld < addedClassesSet.size()) {
+			addedCountOld = addedClassesSet.size();
 			(n.f1).accept(this);
 		}
 	}
@@ -111,10 +80,8 @@ public class ActivationRecordsVisitor implements Visitor {
 	 * f16 -> "}"
 	 */
 	public void visit(MainClass n) throws Exception {
-		inside = true;
 		offset = 0;
 		children.put(((ID) n.f1).toString(), new ArrayList<String>());
-		inside = false;
 	}
 
 	/**
@@ -127,35 +94,36 @@ public class ActivationRecordsVisitor implements Visitor {
 	 * f6 -> "}"
 	 */
 	public void visit(ClassDecl n) throws Exception {
-		String oldPath = curPath;
+		String oldPath = cPath;
 		offset = 0;
 		//ukoliko je već razred dodan
-		if(added.contains(n.f1.f0.tokenImage))
+		if(addedClassesSet.contains(n.f1.f0.tokenImage))
 			return;
 		//ukoliko extendani razred još nije obiđen
 		if (((NodeOptional) (n.f2)).present())
-			if(!added.contains(((ID)((NodeSequence)n.f2.node).elementAt(1)).f0.tokenImage))
+			if(!addedClassesSet.contains(((ID)((NodeSequence)n.f2.node).elementAt(1)).f0.tokenImage))
 				return;
-		curPath = n.f1.toString();
+		cPath = n.f1.toString();
 		children.put(((ID) n.f1).toString(), new ArrayList<String>());
 		//ako imamo extend, onda moramo prvo dohvatiti sve varijable koje nasljeđujemo i onda postaviti offsete
 		if (((NodeOptional) (n.f2)).present()) {
 			String parent = ((ID) (((NodeSequence) ((NodeOptional) (n.f2)).node).elementAt(1))).toString();
-			ArrayList<String> varsFromParent = new ArrayList<String>();
+			ArrayList<String> parentVars = new ArrayList<String>();
 			for (String var : varOffset.keySet()) {
+				//dohvati sve varijable razreda (imaju samo jedan @ i završavaju kao extendana klasa)
 				if (var.endsWith(parent) && var.indexOf("@") > 0 && var.indexOf("@") == var.lastIndexOf("@"))
-					varsFromParent.add((var.substring(0, var.indexOf("@"))+ "@" + curPath));
+					parentVars.add((var.substring(0, var.indexOf("@"))+ "@" + cPath));
 			}
-			for (String it : varsFromParent)
+			for (String it : parentVars)
 				setOffset(it);
 			children.get(parent).add(((ID) n.f1).toString());
 		}
 		n.f4.accept(this);
 		//postavlja se vrijednost trenutnog bloka
-		setSize(curPath, offset);
-		added.add(n.f1.toString());
+		setSize(cPath, offset);
+		addedClassesSet.add(n.f1.toString());
 		n.f5.accept(this);
-		curPath = oldPath;
+		cPath = oldPath;
 	}
 
 	/**
@@ -164,7 +132,7 @@ public class ActivationRecordsVisitor implements Visitor {
 	 * f2 -> ";"
 	 */
 	public void visit(VarDecl n) throws Exception {
-		setOffset(n.f1 + "@" + curPath);
+		setOffset(n.f1 + "@" + cPath);
 	}
 
 	/**
@@ -183,30 +151,30 @@ public class ActivationRecordsVisitor implements Visitor {
 	 * f12 -> "}"
 	 */
 	public void visit(MethodDecl n) throws Exception {
-		String oldPath = curPath;
-		curPath = n.f2 + "@" + curPath;
+		String oldPath = cPath;
+		cPath = n.f2 + "@" + cPath;
 		//u metodi smo, varijable idu na stog
-		inside = true;
-		ArrayList<String> args = new ArrayList<String>();
+		insideMethod = true;
+		ArrayList<String> methodArguments = new ArrayList<String>();
 		//ako imamo argumente, moramo ih sve dodati u listu
 		if (n.f4.present()) {
-			args.add(((VarDecl) ((NodeSequence) (n.f4.node)).elementAt(0)).f1.toString());
+			methodArguments.add(((VarDecl) ((NodeSequence) (n.f4.node)).elementAt(0)).f1.toString());
 			if (((NodeListOptional) (((NodeSequence) (n.f4.node)).elementAt(1))).present())
 				for (Node it : ((NodeListOptional) (((NodeSequence) (n.f4.node)).elementAt(1))).nodes)
-					args.add(((VarDecl) (((NodeSequence) it).elementAt(1))).f1.toString());
+					methodArguments.add(((VarDecl) (((NodeSequence) it).elementAt(1))).f1.toString());
 		}
 		//offset postavljamo ovisno o broju argumenata
-		offset = WORDSIZE * (args.size() + 3);
-		for (String argument : args)
-			setOffset(argument + "@" + curPath);
+		offset = WORDSIZE * (methodArguments.size() + 3);
+		for (String arg : methodArguments)
+			setOffset(arg + "@" + cPath);
 		//postavljaju se na stog još 3 dodatna parametra
-		setOffset("this@" + curPath);
-		setOffset("ret adr@" + curPath);
-		setOffset("old fp@" + curPath);
+		setOffset("this@" + cPath);
+		setOffset("ret adr@" + cPath);
+		setOffset("old fp@" + cPath);
 		n.f7.accept(this);
-		inside = false;
-		setSize(curPath, -offset);
-		curPath = oldPath;
+		insideMethod = false;
+		setSize(cPath, -offset);
+		cPath = oldPath;
 	}
 
 	/**
@@ -287,5 +255,35 @@ public class ActivationRecordsVisitor implements Visitor {
 	public void visit(ID n) throws Exception {
 		throw new Error("visit(ID) should not have been called!");
 	}
+	
+	public Map<String, Integer> getOffsets() {
+		return varOffset;
+	}
 
+	public Map<String, ArrayList<String>> getChildren() {
+		return children;
+	}
+
+	int getOffset(String varName) {
+		if (!varOffset.containsKey((varName)))
+			throw new Error("Variable not found: " + varName);
+		return (varOffset.get(varName)).intValue();
+	}
+
+	void setOffset(String varName) {
+		varOffset.put(varName, new Integer(offset));
+		//ako smo unutar metode, varijable stavljamo na stog, inače idu na heap
+		if (insideMethod)
+			offset -= WORDSIZE;
+		else
+			offset += WORDSIZE;
+	}
+
+	public Map<String, Integer> getSizes() {
+		return constructSize;
+	}
+	
+	void setSize(String construct, int size) {
+		constructSize.put(construct, new Integer(size));
+	}
 }

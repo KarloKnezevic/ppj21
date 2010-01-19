@@ -6,7 +6,7 @@ import java.util.*;
 import hr.fer.ppj.labos.ppj21.tree.*;
 
 public class Assem {
-	static int curLabel;
+	static int label;
 	static boolean labelFlag;
 
 	final static String T_STACK = "A1",
@@ -22,7 +22,7 @@ public class Assem {
 						T_DAT_RET = "D4";
 
 	public static void encode(List<Stm> programList, PrintStream output){
-		curLabel = 0;
+		label = 0;
 		labelFlag = false;
 		header(output);
 		for(Stm stm : programList)
@@ -72,10 +72,10 @@ public class Assem {
 		if(cjump.condition instanceof Temp){
 			output.println("\tAND\t#1, "+getTemp((Temp)cjump.condition, true));
 			//labela na koju se skače u slučaju istinitosti izraza
-			output.println("\tBEQ\tLT"+(curLabel));
+			output.println("\tBEQ\tLT"+(label));
 			printCode(new Jump(new Name(cjump.iftrue)), output);
 			//labela na koju se skaže ako izraz niej istinit
-			output.print("LT"+(curLabel++));
+			output.print("LT"+(label++));
 			printCode(new Jump(new Name(cjump.iffalse)), output);
 		}
 		//uvjet skoka je konstantna vrijednost
@@ -161,11 +161,11 @@ public class Assem {
 			if(binop.binop == Binop.MINUS)
 				output.println("\tNEG\t"+T_DAT_2);
 			if(binop.binop == Binop.LT){
-				output.println("\tBGT\tLT"+(curLabel++));
+				output.println("\tBGT\tLT"+(label++));
 				output.println("\tMOVE\t#0, "+T_DAT_2);
-				output.println("\tBRA\tLT"+(curLabel++));
-				output.println("LT"+(curLabel-2)+"\tMOVE\t#1, "+T_DAT_2);
-				output.print("LT"+(curLabel-1));
+				output.println("\tBRA\tLT"+(label++));
+				output.println("LT"+(label-2)+"\tMOVE\t#1, "+T_DAT_2);
+				output.print("LT"+(label-1));
 			}
 		}
 		else {

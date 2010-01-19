@@ -3,8 +3,13 @@ package hr.fer.ppj.labos.ppj21;
 import hr.fer.ppj.labos.ppj21.gui.CompilerGUI;
 import hr.fer.ppj.labos.ppj21.parse.Parser;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;
@@ -14,13 +19,24 @@ import javax.swing.UIManager.LookAndFeelInfo;
 
 public class Starter {
 	public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-		if(args.length==1) {
+		if(args.length==1 || args.length==3) {
 			try {
-				Parser parser = new Parser(new FileReader(args[0]));
-				System.out.println("Sintaksno stablo učitane datoteke:");
-				System.out.println("----------------------------------");
-				System.out.println("");
-				parser.toString();
+				FileInputStream inputFile = new FileInputStream(args[0]);
+				File outputFile = null;
+				if(args.length==3) {
+					if(args[1].equals("-o")) {
+						outputFile=new File(args[2]);
+					}
+					else {
+						System.out.println("Unsupported compiler argument!");
+						System.exit(4);
+					}
+				}
+				else {
+					outputFile=new File(args[0].substring(0, args[0].indexOf(".")) + ".x68");
+				}
+				MiniJavaCompiler compiler = new MiniJavaCompiler();
+				compiler.doCompile(inputFile, new FileOutputStream(outputFile));
 			} catch (FileNotFoundException e1) {
 				System.err.println("Nije pronađena datoteka!");
 				System.exit(17);

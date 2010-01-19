@@ -13,19 +13,19 @@ import java.util.Vector;
 
 import EDU.purdue.jtb.visitor.DepthFirstVisitor;
 
-import hr.fer.ppj.labos.ppj21.assem.Encoder;
+import hr.fer.ppj.labos.ppj21.assem.Assem;
 import hr.fer.ppj.labos.ppj21.ast.Program;
 import hr.fer.ppj.labos.ppj21.canon.Canon;
 import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNode;
 import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 
 import hr.fer.ppj.labos.ppj21.medjukod.ActivationRecordsVisitor;
-import hr.fer.ppj.labos.ppj21.medjukod.TranslationVisitor;
+import hr.fer.ppj.labos.ppj21.medjukod.IRTranslationVisitor;
 import hr.fer.ppj.labos.ppj21.parse.ParseException;
 import hr.fer.ppj.labos.ppj21.parse.Parser;
 import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
-import hr.fer.ppj.labos.ppj21.semantika.SymbolTableVisitor;
-import hr.fer.ppj.labos.ppj21.semantika.TypeCheckerVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.SymbolTableFillingVisitor;
+import hr.fer.ppj.labos.ppj21.semantika.TypeCheckingVisitor;
 import hr.fer.ppj.labos.ppj21.tree.Print;
 import hr.fer.ppj.labos.ppj21.tree.Stm;
 
@@ -67,10 +67,10 @@ public class Compiler {
 		}
 
 		System.out.println("Type-checking starts...");
-		SymbolTableVisitor symbolTableVisitor = new SymbolTableVisitor();
+		SymbolTableFillingVisitor symbolTableVisitor = new SymbolTableFillingVisitor();
 		try {
 			program.accept(symbolTableVisitor);
-			TypeCheckerVisitor typeChecker = new TypeCheckerVisitor(
+			TypeCheckingVisitor typeChecker = new TypeCheckingVisitor(
 					symbolTableVisitor.getSymbolTable());
 			program.accept(typeChecker);
 			System.out.println("Type-checking completed without error");
@@ -93,7 +93,7 @@ public class Compiler {
 		}
 		System.out.println("Start of translating to IR...");
 		Stm programTree;
-		TranslationVisitor translationVisitor = new TranslationVisitor(
+		IRTranslationVisitor translationVisitor = new IRTranslationVisitor(
 				activationRecordsVisitor.getOffsets(), activationRecordsVisitor.getSizes(),
 				symbolTableVisitor.getSymbolTable(), activationRecordsVisitor.getChildren());
 		try {
@@ -122,7 +122,7 @@ public class Compiler {
 		
 		System.out.println("Start to coding...");
 		try {
-			Encoder.encode(programList, new PrintStream(new FileOutputStream("output.x68")));
+			Assem.encode(programList, new PrintStream(new FileOutputStream("output.x68")));
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}

@@ -1,19 +1,8 @@
 package hr.fer.ppj.labos.ppj21.gui;
 
-import hr.fer.ppj.labos.ppj21.assem.Encoder;
-import hr.fer.ppj.labos.ppj21.ast.Program;
-import hr.fer.ppj.labos.ppj21.canon.Canon;
-import hr.fer.ppj.labos.ppj21.medjukod.ActivationRecordsVisitor;
-import hr.fer.ppj.labos.ppj21.medjukod.TranslationVisitor;
-import hr.fer.ppj.labos.ppj21.parse.ParseException;
+import hr.fer.ppj.labos.ppj21.MiniJavaCompiler;
 import hr.fer.ppj.labos.ppj21.parse.Parser;
-import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
-import hr.fer.ppj.labos.ppj21.semantika.SymbolTableVisitor;
-import hr.fer.ppj.labos.ppj21.semantika.TypeCheckerVisitor;
-import hr.fer.ppj.labos.ppj21.tree.Print;
-import hr.fer.ppj.labos.ppj21.tree.Stm;
 
-import java.applet.Applet;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -23,15 +12,14 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Vector;
+import java.util.prefs.Preferences;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -46,7 +34,6 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.BadLocationException;
 
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -60,9 +47,8 @@ public class CompilerGUI extends JFrame {
 	private RSyntaxTextArea sourceText = new RSyntaxTextArea();
 	private JTabbedPane tabbedMainPane = new JTabbedPane();
 	public static JTextArea errorText = new JTextArea();
-	private JScrollPane treeScrollPane;
 	public static RTextScrollPane scrollPane1;
-	private boolean firstCompilation = true;
+	private MiniJavaCompiler compiler;
 	Parser parser;
 	
 	public CompilerGUI() throws FileNotFoundException {
@@ -71,7 +57,8 @@ public class CompilerGUI extends JFrame {
 		atmf.putMapping("Java", "org.fife.ui.rsyntaxtextarea.modes.JavaTokenMaker");
 		TokenMakerFactory.setDefaultInstance(atmf);
 		sourceText.setSyntaxEditingStyle("Java");
-		showGUI();	
+		compiler = new MiniJavaCompiler();
+		showGUI();
 	}
 	
 	public void showGUI() throws FileNotFoundException {
@@ -90,10 +77,8 @@ public class CompilerGUI extends JFrame {
 			}
 			@Override
 			public void keyReleased(KeyEvent e) {
-				try {
-					scrollPane1.getGutter().removeAllTrackingIcons();
-					doCompile();
-				} catch (IOException e1) {}
+				scrollPane1.getGutter().removeAllTrackingIcons();
+				compiler.doCheck(new ByteArrayInputStream(sourceText.getText().getBytes()));
 			}
 			
 			@Override
@@ -104,20 +89,26 @@ public class CompilerGUI extends JFrame {
 		fileOpen.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				Preferences prefs = Preferences.userRoot().node(CompilerGUI.class.getCanonicalName());
+				String lastDir = prefs.get("lastDir", null);
 				JFileChooser chooser = new JFileChooser();
-				FileNameExtensionFilter filter = new FileNameExtensionFilter("Java files", "java");
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("MiniJava files", "mj");
 				chooser.setAcceptAllFileFilterUsed(true);
 				chooser.setFileFilter(filter);
+				if(lastDir!=null && !lastDir.isEmpty()) {
+					chooser.setCurrentDirectory(new File(lastDir));
+				}
 				if(chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 					file = chooser.getSelectedFile();
+					prefs.put("lastDir", file.getParentFile().getAbsolutePath());
 					try {
 						sourceText.read(new FileReader(file), file);
 						tabbedMainPane.setSelectedIndex(0);
 					} catch (FileNotFoundException e1) {
-						System.err.println("Nije prona�ena datoteka!");
+						System.err.println("Nije pronadjena datoteka!");
 						System.exit(17);
 					} catch (IOException e1) {
-						System.err.println("Gre�ka prilikom I/O operacija");
+						System.err.println("Greska prilikom I/O operacija");
 						System.exit(13);
 					}
 				}
@@ -126,12 +117,23 @@ public class CompilerGUI extends JFrame {
 		fileSave.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				Preferences prefs = Preferences.userRoot().node(CompilerGUI.class.getCanonicalName());
 				JFileChooser chooser = new JFileChooser();
-				FileNameExtensionFilter filter = new FileNameExtensionFilter("C/C++ files", "c", "h", "cpp");
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("MiniJava files", "mj");
 				chooser.setAcceptAllFileFilterUsed(true);
 				chooser.addChoosableFileFilter(filter);
+				String lastDir = prefs.get("lastDir", null);
+				if(lastDir!=null && !lastDir.isEmpty()) {
+					chooser.setCurrentDirectory(new File(lastDir));
+				}
 				if(chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
 					file = chooser.getSelectedFile();
+					String name = file.getName();
+					if (name.indexOf('.')==-1) {
+						name += ".mj";
+						file = new File(file.getParentFile(), name);
+					}
+					prefs.put("lastDir", file.getParentFile().getAbsolutePath());
 					try {
 						sourceText.write(new FileWriter(file));
 					} catch (FileNotFoundException e1) {
@@ -168,8 +170,29 @@ public class CompilerGUI extends JFrame {
 			public void mouseReleased(MouseEvent e) {}
 			@Override
 			public void mousePressed(MouseEvent e) {
+				Preferences prefs = Preferences.userRoot().node(CompilerGUI.class.getCanonicalName());
+				String lastDir = prefs.get("lastDir", null);
+				JFileChooser fileChooser = new JFileChooser();
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("X68 files", "x68");
+				fileChooser.setAcceptAllFileFilterUsed(true);
+				fileChooser.setFileFilter(filter);
+				if(lastDir!=null && !lastDir.isEmpty()) {
+					fileChooser.setCurrentDirectory(new File(lastDir));
+				}
+				int returnValue = fileChooser.showSaveDialog(null);
+				if(returnValue!=JFileChooser.APPROVE_OPTION) {
+					System.err.println("Nije odabrana datoteka!");
+					System.exit(13);
+				}
+				file = fileChooser.getSelectedFile();
+				String name = file.getName();
+				if (name.indexOf('.')==-1) {
+					name += ".x68";
+					file = new File(file.getParentFile(), name);
+				}
+				prefs.put("lastDir", file.getParentFile().getAbsolutePath());
 				try {
-					doCompile();
+					compiler.doCompile(new ByteArrayInputStream(sourceText.getText().getBytes()), new FileOutputStream(file));
 				} catch (IOException e1) {
 					System.err.println("Greska prilikom I/O operacija");
 					System.exit(13);
@@ -209,91 +232,6 @@ public class CompilerGUI extends JFrame {
 		this.pack();
 	}
 	
-	private void doCompile() throws IOException {
-		errorText.setText("");
-		if(firstCompilation) {
-			parser = new Parser(new ByteArrayInputStream(sourceText.getText().getBytes()));
-			new JPanel(new BorderLayout());
-			firstCompilation=false;
-		}
-		else {
-			Parser.ReInit(new ByteArrayInputStream(sourceText.getText().getBytes()));
-			tabbedMainPane.remove(treeScrollPane);
-		}	
-		Program program;
-		System.out.println("Parsing starts...");
-		try {
-			program = parser.program();
-			System.out.println("Parsing completed without error");
-		} catch (TokenMgrError e) {
-	           System.out.println("Invalid token " + e.getMessage());
-	           return;
-	    }
-		catch (ParseException e) {
-			try {
-				CompilerGUI.errorText.setText(CompilerGUI.errorText.getText() + e.getMessage() + "\n");
-				CompilerGUI.scrollPane1.getGutter().addLineTrackingIcon(e.currentToken.beginLine-1, createImageIcon("error.gif",e.getMessage()));
-			} catch (BadLocationException e1) {
-			}
-			System.out.println("Syntax error occured, compilation halts.");
-			return;
-		}
-
-		System.out.println("Type-checking starts...");
-		SymbolTableVisitor symbolTableVisitor = new SymbolTableVisitor();
-		try {
-			program.accept(symbolTableVisitor);
-			TypeCheckerVisitor typeChecker = new TypeCheckerVisitor(symbolTableVisitor.getSymbolTable());
-			program.accept(typeChecker);
-			System.out.println("Type-checking completed without error");
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			System.out.println("Type-check error occured, compilation halts.");
-			return;
-		}
-		System.out.println("Start of making activation records...");
-		ActivationRecordsVisitor activationRecordsVisitor = new ActivationRecordsVisitor();
-		try {
-			program.accept(activationRecordsVisitor);
-			System.out.println("Making activation records completed without error");
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			System.out.println("Making activation records error occured, compilation halts.");
-			e.printStackTrace();
-			return;
-		}
-		System.out.println("Start of translating to IR...");
-		Stm programTree;
-		TranslationVisitor translationVisitor = new TranslationVisitor(
-				activationRecordsVisitor.getOffsets(), activationRecordsVisitor.getSizes(),
-				symbolTableVisitor.getSymbolTable(), activationRecordsVisitor.getChildren());
-		try {
-			programTree = (Stm) program.accept(translationVisitor);
-			System.out.println("Translating to IR completed without error");
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			System.out.println("Translating to IR error occured, compilation halts.");
-			e.printStackTrace();
-			return;
-		}
-
-		System.out.println("Start of Canonicalizing...");
-		Stm canonizedTree  = Canon.toCanonicalForm(programTree);
-		System.out.println("Canonicalized completed successfully!");
-		
-		System.out.println("Start to listing...");
-		List<Stm> programList = Canon.toStmList(canonizedTree);
-		System.out.println("Listed completed successfully!");
-		
-		
-		System.out.println("Start to coding...");
-		try {
-			Encoder.encode(programList, new PrintStream(new FileOutputStream("output.x68")));
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
-		System.out.println("coding completed successfully!\nThe assembly file is now available in output.x68");
-	}
 	
 	public ImageIcon createImageIcon(String path, String description) {
 		java.net.URL imgURL = getClass().getResource(path);

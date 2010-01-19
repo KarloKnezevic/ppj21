@@ -9,12 +9,12 @@ import java.util.*;
  * Stvara tablicu simbola, kojoj se može pristupiti metodom getSymbolTable().
  * Ujedno, provjerava da nema dvostrukih deklaracija varijabli, da su sve ispravno nazvane i slično.
  */
-public class SymbolTableVisitor implements Visitor {
+public class SymbolTableFillingVisitor implements Visitor {
 
-	private String currPath, tempVar, tempType;
 	private Map<String, String> symTable = new TreeMap<String, String>();
-	private HashSet<String> added = new HashSet<String>();
-	private boolean error;
+	private String cPath, tVar, tType;
+	private HashSet<String> classesAddedSet = new HashSet<String>();
+	private boolean errorEncountered;
 
 	public Map<String, String> getSymbolTable() {
 		return symTable;
@@ -38,21 +38,21 @@ public class SymbolTableVisitor implements Visitor {
 	 */
 	public void visit(Program n) throws Exception {
 		//briše se tablica simbola, počinje stvaranje iznova
-		int ac = 0;
-		error = false;
-		int oldAc = -1;
+		int addedCount = 0;
+		errorEncountered = false;
+		int addedCountOld = -1;
 		symTable.clear();
-		added.clear();
+		classesAddedSet.clear();
 		//prihvati main klasu (mora biti na prvom mjestu)
 		n.f0.accept(this);
 		//dok god ima novih razreda za dodati, dodaj ih
-		while(ac!=oldAc){
-			oldAc = ac;
+		while(addedCount!=addedCountOld){
+			addedCountOld = addedCount;
 			n.f1.accept(this);
-			ac = added.size();
+			addedCount = classesAddedSet.size();
 		}
-		if(n.f1.size()>ac){
-			error = true;
+		if(n.f1.size()>addedCount){
+			errorEncountered = true;
 			visit(n.f1);
 		}
 	}
@@ -94,26 +94,26 @@ public class SymbolTableVisitor implements Visitor {
 	 */
 	public void visit(ClassDecl n) throws Exception {
 		//ukoliko je već dodan taj razred, vrati se
-		if(added.contains(n.f1.f0.tokenImage))
+		if(classesAddedSet.contains(n.f1.f0.tokenImage))
 			return;
 		//ako razred extenda neki drugi
 		if(n.f2.present()){
 			//ako već nije dodan extendani razred, pokušaj ga dodati
-			if(!added.contains(((ID)((NodeSequence)n.f2.node).elementAt(1)).f0.tokenImage)){
-				if (error)
+			if(!classesAddedSet.contains(((ID)((NodeSequence)n.f2.node).elementAt(1)).f0.tokenImage)){
+				if (errorEncountered)
 					throw new TypeException("Cannot resolve class name", ((ID)(((NodeSequence)n.f2.node).nodes.elementAt(1))).f0);
 				else
 					return;
 			}
 			NodeSequence ns = ((NodeSequence)n.f2.node);
-			//cname - ime razreda koji je extendan
-			String cname = ((ID)(ns.nodes.elementAt(1))).f0.tokenImage;
-			Object[] iter = symTable.keySet().toArray();
-			for (int i=0; i<iter.length; i++) {
+			//ime razreda koji je extendan
+			String extendedClassName = ((ID)(ns.nodes.elementAt(1))).f0.tokenImage;
+			Object[] it = symTable.keySet().toArray();
+			for (int i=0; i<it.length; i++) {
 				//svim za sve metode i varijable koje se nalaze u naslijeđenom razredu, napravi kopije za trenutan razred
-				String element = (String) iter[i];
-				if(element.startsWith(cname) && !element.equals(cname))
-					symTable.put(element.replaceFirst(cname, n.f1.f0.tokenImage), symTable.get(element));
+				String e = (String)it[i];
+				if(e.startsWith(extendedClassName) && !e.equals(extendedClassName))
+					symTable.put(e.replaceFirst(extendedClassName, n.f1.f0.tokenImage), symTable.get(e));
 			}
 		}
 		//ukoliko već postoji, javi grešku
@@ -121,11 +121,11 @@ public class SymbolTableVisitor implements Visitor {
 			throw new TypeException("Duplicate Class definition!", n.f1.f0);
 		symTable.put(n.f1.f0.tokenImage, "class");
 		//trenutni path postavi na ime klase
-		currPath = n.f1.f0.tokenImage;
+		cPath = n.f1.f0.tokenImage;
 		//deklaracije varijabli i metoda
 		n.f4.accept(this);
 		n.f5.accept(this);
-		added.add(n.f1.f0.tokenImage);
+		classesAddedSet.add(n.f1.f0.tokenImage);
 	}
 
 	/**
@@ -134,15 +134,15 @@ public class SymbolTableVisitor implements Visitor {
 	 * f2 -> ";"
 	 */
 	public void visit(VarDecl n) throws Exception {
-		tempType = n.f0.typeName();
-		tempVar = n.f1.f0.tokenImage;
+		tType = n.f0.typeName();
+		tVar = n.f1.f0.tokenImage;
 		//provjerava se ima li varijabla ime jednako razredu ili nekoj već definiranoj varijabli u metodi
-		if(currPath.split(":")[0].equals(tempVar))
+		if(cPath.split(":")[0].equals(tVar))
 			throw new TypeException("ID has the containing class name!", n.f1.f0);
-		if(symTable.containsKey(currPath+":"+tempVar))
+		if(symTable.containsKey(cPath+":"+tVar))
 			throw new TypeException("Duplicate variable definition!", n.f1.f0);
 		//dodaje se nova varijabla u tablicu simbola sa ključem u formatu: razred:metoda:varijabla
-		symTable.put(currPath+":"+tempVar, tempType);
+		symTable.put(cPath+":"+tVar, tType);
 	}
 
 	/**
@@ -161,39 +161,38 @@ public class SymbolTableVisitor implements Visitor {
 	 * f12 -> "}"
 	 */
 	public void visit(MethodDecl n) throws Exception {
-		String retVar = "", retType = "", tempPath = currPath;
+		String rVar = "", rType = "", tPath = cPath;
 		//ime metode
-		retVar = n.f2.f0.tokenImage;
+		rVar = n.f2.f0.tokenImage;
 		//povratni tip
-		retType = n.f1.typeName();
-		retType += "(";
-		currPath += ":"+retVar;
+		rType = n.f1.typeName();
+		rType += "(";
+		cPath += ":"+rVar;
 
-		if(symTable.containsKey(tempPath+":"+retVar))
+		if(symTable.containsKey(tPath+":"+rVar))
 			throw new TypeException("Duplicate Method definition!", n.f2.f0);
 		//ako postoje argumenti metode
 		if(n.f4.present()){
 			//gledaj te metode kao deklaracije varijabli
 			((VarDecl)((NodeSequence)n.f4.node).nodes.elementAt(0)).accept(this);
-			retType += tempType;
+			rType += tType;
 			if(((NodeListOptional)((NodeSequence)n.f4.node).nodes.elementAt(1)).present()){
 				NodeListOptional nlo = ((NodeListOptional)((NodeSequence)n.f4.node).nodes.elementAt(1));
 				//dodaj sve argumente u varijablu retType
 				for(Enumeration<Node> e = nlo.elements(); e.hasMoreElements(); ){
 					((VarDecl)((NodeSequence)e.nextElement()).nodes.elementAt(1)).accept(this);
-					retType += ","+tempType;
+					rType += ","+tType;
 				}
 			}
 		}
-		//varijabla retType ima format: povratni_tip(tipovi,argumenata)
-		retType += ")";
-		symTable.put(tempPath+":"+retVar, retType);
+		//varijabla rType ima format: povratni_tip(tipovi,argumenata)
+		rType += ")";
+		symTable.put(tPath+":"+rVar, rType);
 		//deklaracije varijabli unutar metode
 		n.f7.accept(this);
-
-		tempType = retType;
-		tempVar = retVar;
-		currPath = tempPath;
+		tType = rType;
+		tVar = rVar;
+		cPath = tPath;
 	}
 
 	/**

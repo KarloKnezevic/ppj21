@@ -6,176 +6,31 @@ import hr.fer.ppj.labos.ppj21.ast.*;
 import hr.fer.ppj.labos.ppj21.tree.*;
 import hr.fer.ppj.labos.ppj21.visitor.*;
 
-public class TranslationVisitor implements ObjectVisitor {
+public class IRTranslationVisitor implements ObjectVisitor {
 
-	final Expr SP = new Temp("sp"), FP = new Temp("fp"), DR = new Temp("d1"),
-			AR = new Temp("a1"), HP = new Temp("hp"), TR = new Temp("TR");
-
+	final Expr SP = new Temp("sp");
+	final Expr FP = new Temp("fp");
+	final Expr DR = new Temp("d1");
+	final Expr AR = new Temp("a1");
+	final Expr HP = new Temp("hp");
+	final Expr TR = new Temp("TR");
 	final char LABEL_SEPERATOR = '_';
-	final int LAST_STACK = 0xFFFE, WORDSIZE = 2, FIRST_HEAP = 0xE100;
+	
+	final int LAST_STACK = 0xFFFE;
+	final int WORDSIZE = 2;
+	final int FIRST_HEAP = 0xE100;
 	int labelCounter;
-	String curClass, curMethod, curType;
-	Map<String, Integer> offset, size;
-	Map<String, String> symbolTable;
+	String cClass, cMethod, curType;
+	Map<String, Integer> varOffset, constructSize;
+	Map<String, String> symTable;
 	Map<String, ArrayList<String>> children;
 
-	Label getNextLabel() {
-		return new Label("L" + labelCounter++);
-	}
-
-	public Expr isZero(Expr e) {
-		return new Binop(Binop.AND,
-				new Binop(Binop.LT, e, new Const(1)),
-				new Binop(Binop.LT, new Const(-1), e));
-	}
-
-	int getOffset(String varName) {
-		if (!offset.containsKey((varName)))
-			throw new Error("Variable not found: " + varName);
-		return (offset.get(varName)).intValue();
-	}
-
-	int getSize(String constructName) {
-		if (!size.containsKey((constructName)))
-			throw new Error("Construct not found: " + constructName);
-		return (size.get(constructName)).intValue();
-	}
-
-	String getType(String className) {
-		if (!symbolTable.keySet().contains((className)))
-			throw new Error("Class " + className + " not found!");
-		return symbolTable.get(className);
-	}
-
-	ArrayList<String> getAllChildren(String className) {
-		ArrayList<String> c = children.get(className);
-		ArrayList<String> result = new ArrayList<String>();
-		for (String child : c) {
-			result.add(child);
-			result.addAll(getAllChildren(child));
-		}
-		return result;
-	}
-
-	public TranslationVisitor(Map<String, Integer> offset, Map<String, Integer> size, Map<String, String> symbolTable, Map<String, ArrayList<String>> children) {
-		this.offset = offset;
+	public IRTranslationVisitor(Map<String, Integer> varOffset, Map<String, Integer> constructSize, Map<String, String> symTable, Map<String, ArrayList<String>> children) {
+		this.varOffset = varOffset;
 		this.children = children;
-		this.size = size;
-		this.symbolTable = symbolTable;
+		this.constructSize = constructSize;
+		this.symTable = symTable;
 		labelCounter = 1;
-	}
-
-	Stm add(Stm a, Stm b) {
-		if (a == null && b == null)
-			throw new Error("Both are null!");
-		else if (a != null && b != null)
-			return new Seq(a, b);
-		else if (a != null)
-			return a;
-		else
-			return b;
-	}
-
-	Stm addConst(Expr e, int x) {
-		return new Move(e, new Binop(Binop.PLUS, new Const(x), e));
-	}
-
-	Stm push(Expr e) {
-		return add(new Move(new Mem(SP), e), addConst(SP, -WORDSIZE));
-	}
-
-	Stm pop() {
-		return addConst(SP, WORDSIZE);
-	}
-
-	Stm pop(int k) {
-		return addConst(SP, WORDSIZE * k);
-	}
-
-	Expr not(Expr e) {
-		return new Binop(Binop.MINUS, new Const(1), e);
-	}
-
-	Expr getThis() {
-		return getLocal("this");
-	}
-
-	Expr getLocal(String localName) {
-		String name = localName + "@" + curMethod + "@" + curClass;
-		if (!offset.containsKey((name)))
-			throw new Error("Local not found: " + name);
-		return new Mem(new Binop(Binop.PLUS, FP, new Const(getOffset(name))));
-	}
-
-	Expr getField(String fieldName) {
-		String name = fieldName + "@" + curClass;
-		if (!offset.containsKey((name)))
-			throw new Error("Field not found: " + name);
-		return new Mem(new Binop(Binop.PLUS, getThis(), new Const(getOffset(name))));
-	}
-
-	Stm ifThenElse(Expr e, Stm s1, Stm s2) {
-		Label t = getNextLabel(), f = getNextLabel(), j = getNextLabel();
-		Stm result = new CJump(e, t, f);
-		result = add(result, t);
-		result = add(result, s1);
-		result = add(result, new Jump(new Name(j)));
-		result = add(result, f);
-		result = add(result, s2);
-		result = add(result, j);
-		return result;
-	}
-
-	Stm ifThen(Expr e, Stm s) {
-		Label t = getNextLabel(), d = getNextLabel();
-		Stm result = new CJump(e, t, d);
-		result = add(result, t);
-		result = add(result, s);
-		result = add(result, d);
-		return result;
-	}
-
-	Stm whileDo(Expr e, Stm s) {
-		Label c = getNextLabel(), b = getNextLabel(), d = getNextLabel();
-		Stm result = c;
-		result = add (result, new CJump(e, b, d));
-		result = add (result, b);
-		result = add (result, s);
-		result = add (result, new Jump(new Name(c)));
-		result = add (result, d);
-		return result;
-	}
-
-	Stm allocateInstrs(Expr size, boolean array) {
-		Stm s = new Move(AR, HP);
-		s = add(s, new Move(new Mem(SP), size));
-		if (array) {
-			s = add(s, new Move(new Mem(HP), new Mem(SP)));
-			s = add(s, addConst(HP, WORDSIZE));
-		}
-		Expr whileCheck = new Binop(Binop.LT, new Const(0), new Mem(SP));
-		Stm whileBody = new Move(new Mem(HP), new Const(0));
-		whileBody = add(whileBody, addConst(HP, WORDSIZE));
-		whileBody = add(whileBody, addConst(new Mem(SP), -1));
-		s = add(s, whileDo(whileCheck, whileBody));
-		return s;
-	}
-
-	Stm rte(String s, NodeToken n) {
-		return new RuntimeError(s + " at line " + n.beginLine + ", column "
-				+ n.beginColumn);
-	}
-
-	Expr arrayIndex(Expr a, Expr index, NodeToken n) {
-		Stm s = new Move(TR, index);
-		Expr index1 = new Binop(Binop.PLUS, TR, new Const(1));
-		s = add(s, ifThen(isZero(a), rte("NullPointer", n)));
-		s = add(s, ifThen(new Binop(Binop.LT, new Mem(new Binop(Binop.PLUS, a, new Const(0))),
-				index1), rte("IndexOutOfBounds", n)));
-		s = add(s, ifThen(new Binop(Binop.LT, index1, new Const(1))
-				, rte("IndexOutOfBounds", n)));
-			return new ESeq(s, new Mem(new Binop(Binop.PLUS, a, new Binop(
-				Binop.MUL, index1, new Const(WORDSIZE)))));
 	}
 
 	public Object visit(NodeList n, Object argu) throws Exception {
@@ -230,10 +85,10 @@ public class TranslationVisitor implements ObjectVisitor {
 	 * f2 -> <EOF>
 	 */
 	public Stm visit(Program n, Object argu) throws Exception {
-		curMethod = curClass = "";
-		Stm result = (Stm) (n.f0.accept(this, null));
-		result = add(result, visit(n.f1));
-		return result;
+		cMethod = cClass = "";
+		Stm res = (Stm) (n.f0.accept(this, null));
+		res = add(res, visit(n.f1));
+		return res;
 	}
 
 	/**
@@ -256,16 +111,16 @@ public class TranslationVisitor implements ObjectVisitor {
 	 * f16 -> "}"
 	 */
 	public Stm visit(MainClass n, Object argu) throws Exception {
-		Stm result = new Label("MAIN");
-		curClass = n.f1.toString();
-		curMethod = "main";
-		result = add(result, new Move(HP, new Const(FIRST_HEAP + WORDSIZE)));
-		result = add(result, new Move(FP, new Const(LAST_STACK - WORDSIZE)));
-		result = add(result, new Move(SP, FP));
-		result = add(result, (Stm) (n.f14.accept(this, null)));
-		result = add(result, new Label("DONE"));
-		curClass = curMethod = "";
-		return result;
+		Stm res = new Label("MAIN");
+		cClass = n.f1.toString();
+		cMethod = "main";
+		res = add(res, new Move(HP, new Const(FIRST_HEAP + WORDSIZE)));
+		res = add(res, new Move(FP, new Const(LAST_STACK - WORDSIZE)));
+		res = add(res, new Move(SP, FP));
+		res = add(res, (Stm) (n.f14.accept(this, null)));
+		res = add(res, new Label("DONE"));
+		cClass = cMethod = "";
+		return res;
 	}
 
 	/**
@@ -278,10 +133,10 @@ public class TranslationVisitor implements ObjectVisitor {
 	 * f6 -> "}"
 	 */
 	public Stm visit(ClassDecl n, Object argu) throws Exception {
-		curClass = n.f1.toString();
-		Stm result = visit(n.f5);
-		curClass = "";
-		return result;
+		cClass = n.f1.toString();
+		Stm res = visit(n.f5);
+		cClass = "";
+		return res;
 	}
 
 	/**
@@ -301,26 +156,23 @@ public class TranslationVisitor implements ObjectVisitor {
 	 */
 
 	public Stm visit(MethodDecl n, Object argu) throws Exception {
-		curMethod = n.f2.toString();
-
-		Stm result = new Label(curClass + LABEL_SEPERATOR + curMethod);
-		for (String child : getAllChildren(curClass))
-			result = add(result, new Label(child + LABEL_SEPERATOR + curMethod));
-
-		result = add(result, new Move(FP, SP));
-
-		int size = getSize(curMethod + "@" + curClass) / WORDSIZE;
+		cMethod = n.f2.toString();
+		Stm res = new Label(cClass + LABEL_SEPERATOR + cMethod);
+		for (String child : getAllChildren(cClass))
+			res = add(res, new Label(child + LABEL_SEPERATOR + cMethod));
+		res = add(res, new Move(FP, SP));
+		int size = getSize(cMethod + "@" + cClass) / WORDSIZE;
 		for (int i = 0; i < size; i++)
-			result = add(result, push(new Const(0)));
-		result = add(result, visit(n.f8));
-		result = add(result, new Move(DR, (Expr) n.f10.accept(this, null)));
+			res = add(res, push(new Const(0)));
+		res = add(res, visit(n.f8));
+		res = add(res, new Move(DR, (Expr) n.f10.accept(this, null)));
 		if (size > 0)
-			result = add(result, pop(size));
-		result = add(result, new Move(AR, getLocal("ret adr")));
-		result = add(result, new Move(FP, getLocal("old fp")));
-		result = add(result, new Jump(AR));
-		curMethod = "";
-		return result;
+			res = add(res, pop(size));
+		res = add(res, new Move(AR, getLocal("ret adr")));
+		res = add(res, new Move(FP, getLocal("old fp")));
+		res = add(res, new Jump(AR));
+		cMethod = "";
+		return res;
 	}
 
 	/**
@@ -374,7 +226,6 @@ public class TranslationVisitor implements ObjectVisitor {
 					null), (NodeToken) ns.elementAt(1)), (Expr) ns.elementAt(5)
 					.accept(this, null));
 		default:
-			//Because parsing was successful, this case will never happen
 			throw new Error("Statement format unknown!");
 		}
 	}
@@ -446,12 +297,12 @@ public class TranslationVisitor implements ObjectVisitor {
 	 */
 	public Expr visit(Factor n, Object argu) throws Exception {
 		Expr object;
-		Stm allocation = null;
+		Stm alloc = null;
 		switch (((NodeChoice) n.f1).which) {
 		case 0:
 			Expr size = (Expr) ((NodeSequence) (((NodeChoice) n.f1).choice))
 					.elementAt(3).accept(this, null);
-			allocation = allocateInstrs(new Binop(Binop.PLUS, new Const(0),
+			alloc = allocateInstrs(new Binop(Binop.PLUS, new Const(0),
 					size), true);
 			object = AR;
 			curType = "int[]";
@@ -459,7 +310,7 @@ public class TranslationVisitor implements ObjectVisitor {
 		case 1:
 			String name = ((ID) (((NodeSequence) (((NodeChoice) n.f1).choice))
 					.elementAt(1))).toString();
-			allocation = allocateInstrs((new Const(getSize(name) / WORDSIZE)),
+			alloc = allocateInstrs((new Const(getSize(name) / WORDSIZE)),
 					false);
 			object = AR;
 			curType = name;
@@ -471,7 +322,7 @@ public class TranslationVisitor implements ObjectVisitor {
 			throw new Error("This is impossible case in visit factor!");
 		}
 
-		Stm mci = allocation;
+		Stm mci = alloc;
 
 		if (n.f2.present())
 			for (Node mc : ((NodeListOptional) n.f2).nodes) {
@@ -568,7 +419,7 @@ public class TranslationVisitor implements ObjectVisitor {
 		case 4:
 			return new Const(0);
 		case 5:
-			curType = curClass;
+			curType = cClass;
 			return getThis();
 		default:
 			throw new Error("This is impossible in visit(Atom)!");
@@ -580,14 +431,165 @@ public class TranslationVisitor implements ObjectVisitor {
 	 */
 	public Expr visit(ID n, Object argu) throws Exception {
 		String name = n.toString();
-		if (offset.keySet().contains(name + "@" + curMethod + "@" + curClass)) {
-			curType = getType(curClass + ":" + curMethod + ":" + name);
+		if (varOffset.keySet().contains(name + "@" + cMethod + "@" + cClass)) {
+			curType = getType(cClass + ":" + cMethod + ":" + name);
 			return getLocal(name);
-		} else if (offset.keySet().contains(name + "@" + curClass)) {
-			curType = getType(curClass + ":" + name);
+		} else if (varOffset.keySet().contains(name + "@" + cClass)) {
+			curType = getType(cClass + ":" + name);
 			return getField(name);
 		} else
 			throw new Error("Variable " + name + " not found at line "
 					+ n.f0.beginLine + " column " + n.f0.beginColumn);
+	}
+	
+	Label getNextLabel() {
+		return new Label("L" + labelCounter++);
+	}
+
+	public Expr isZero(Expr e) {
+		return new Binop(Binop.AND,
+				new Binop(Binop.LT, e, new Const(1)),
+				new Binop(Binop.LT, new Const(-1), e));
+	}
+
+	int getOffset(String varName) {
+		if (!varOffset.containsKey((varName)))
+			throw new Error("Variable not found: " + varName);
+		return (varOffset.get(varName)).intValue();
+	}
+
+	int getSize(String constructName) {
+		if (!constructSize.containsKey((constructName)))
+			throw new Error("Construct not found: " + constructName);
+		return (constructSize.get(constructName)).intValue();
+	}
+
+	String getType(String className) {
+		if (!symTable.keySet().contains((className)))
+			throw new Error("Class " + className + " not found!");
+		return symTable.get(className);
+	}
+
+	ArrayList<String> getAllChildren(String className) {
+		ArrayList<String> c = children.get(className);
+		ArrayList<String> result = new ArrayList<String>();
+		for (String child : c) {
+			result.add(child);
+			result.addAll(getAllChildren(child));
+		}
+		return result;
+	}
+	
+	Stm add(Stm a, Stm b) {
+		if (a == null && b == null)
+			throw new Error("Both are null!");
+		else if (a != null && b != null)
+			return new Seq(a, b);
+		else if (a != null)
+			return a;
+		else
+			return b;
+	}
+
+	Stm addConst(Expr e, int x) {
+		return new Move(e, new Binop(Binop.PLUS, new Const(x), e));
+	}
+
+	Stm push(Expr e) {
+		return add(new Move(new Mem(SP), e), addConst(SP, -WORDSIZE));
+	}
+
+	Stm pop() {
+		return addConst(SP, WORDSIZE);
+	}
+
+	Stm pop(int k) {
+		return addConst(SP, WORDSIZE * k);
+	}
+
+	Expr not(Expr e) {
+		return new Binop(Binop.MINUS, new Const(1), e);
+	}
+
+	Expr getThis() {
+		return getLocal("this");
+	}
+
+	Expr getLocal(String localName) {
+		String name = localName + "@" + cMethod + "@" + cClass;
+		if (!varOffset.containsKey((name)))
+			throw new Error("Local not found: " + name);
+		return new Mem(new Binop(Binop.PLUS, FP, new Const(getOffset(name))));
+	}
+
+	Expr getField(String fieldName) {
+		String name = fieldName + "@" + cClass;
+		if (!varOffset.containsKey((name)))
+			throw new Error("Field not found: " + name);
+		return new Mem(new Binop(Binop.PLUS, getThis(), new Const(getOffset(name))));
+	}
+
+	Stm ifThenElse(Expr e, Stm s1, Stm s2) {
+		Label t = getNextLabel(), f = getNextLabel(), j = getNextLabel();
+		Stm res = new CJump(e, t, f);
+		res = add(res, t);
+		res = add(res, s1);
+		res = add(res, new Jump(new Name(j)));
+		res = add(res, f);
+		res = add(res, s2);
+		res = add(res, j);
+		return res;
+	}
+
+	Stm ifThen(Expr e, Stm s) {
+		Label t = getNextLabel(), d = getNextLabel();
+		Stm res = new CJump(e, t, d);
+		res = add(res, t);
+		res = add(res, s);
+		res = add(res, d);
+		return res;
+	}
+
+	Stm whileDo(Expr e, Stm s) {
+		Label c = getNextLabel(), b = getNextLabel(), d = getNextLabel();
+		Stm res = c;
+		res = add (res, new CJump(e, b, d));
+		res = add (res, b);
+		res = add (res, s);
+		res = add (res, new Jump(new Name(c)));
+		res = add (res, d);
+		return res;
+	}
+
+	Stm allocateInstrs(Expr size, boolean array) {
+		Stm s = new Move(AR, HP);
+		s = add(s, new Move(new Mem(SP), size));
+		if (array) {
+			s = add(s, new Move(new Mem(HP), new Mem(SP)));
+			s = add(s, addConst(HP, WORDSIZE));
+		}
+		Expr whileCheck = new Binop(Binop.LT, new Const(0), new Mem(SP));
+		Stm whileBody = new Move(new Mem(HP), new Const(0));
+		whileBody = add(whileBody, addConst(HP, WORDSIZE));
+		whileBody = add(whileBody, addConst(new Mem(SP), -1));
+		s = add(s, whileDo(whileCheck, whileBody));
+		return s;
+	}
+
+	Stm rte(String s, NodeToken n) {
+		return new RuntimeError(s + " at line " + n.beginLine + ", column "
+				+ n.beginColumn);
+	}
+
+	Expr arrayIndex(Expr a, Expr index, NodeToken n) {
+		Stm s = new Move(TR, index);
+		Expr index1 = new Binop(Binop.PLUS, TR, new Const(1));
+		s = add(s, ifThen(isZero(a), rte("NullPointer", n)));
+		s = add(s, ifThen(new Binop(Binop.LT, new Mem(new Binop(Binop.PLUS, a, new Const(0))),
+				index1), rte("IndexOutOfBounds", n)));
+		s = add(s, ifThen(new Binop(Binop.LT, index1, new Const(1))
+				, rte("IndexOutOfBounds", n)));
+			return new ESeq(s, new Mem(new Binop(Binop.PLUS, a, new Binop(
+				Binop.MUL, index1, new Const(WORDSIZE)))));
 	}
 }

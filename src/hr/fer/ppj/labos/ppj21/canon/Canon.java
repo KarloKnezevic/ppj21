@@ -12,18 +12,25 @@ public class Canon{
 	
 	static Stm do_stm(Stm stm) {
 		if(stm instanceof CJump)
+			//ukoliko se radi o uvjetnom skoku
 			return do_stm((CJump)stm);
 		if(stm instanceof Jump)
+			//obican skok
 			return do_stm((Jump)stm);
 		if(stm instanceof Label)
+			//labela
 			return do_stm((Label)stm);
 		if(stm instanceof Out)
+			//izlaz
 			return do_stm((Out)stm);
 		if(stm instanceof Seq)
+			//blok naredbi
 			return do_stm((Seq)stm);
 		if(stm instanceof Move)
+			//pridruzivanje
 			return do_stm((Move)stm);
 		if(stm instanceof RuntimeError)
+			//RuntimeError
 			return do_stm((RuntimeError)stm);
 		return null;
 	}

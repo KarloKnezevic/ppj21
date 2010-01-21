@@ -6,7 +6,6 @@ package hr.fer.ppj.labos.ppj21.ast;
 
 import java.util.*;
 
-import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 import hr.fer.ppj.labos.ppj21.visitor.*;
 
 /**
@@ -53,9 +52,6 @@ public class NodeListOptional implements NodeListInterface {
 
 	public Object accept(ObjectVisitor v, Object argu) throws Exception {
 		return v.visit(this, argu);
-	}
-	public Object accept(SimpleNodeVisitor v) throws Exception {
-		return v.visit(this);
 	}
 
 

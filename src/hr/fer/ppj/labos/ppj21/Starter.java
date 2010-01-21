@@ -1,15 +1,11 @@
 package hr.fer.ppj.labos.ppj21;
 
 import hr.fer.ppj.labos.ppj21.gui.CompilerGUI;
-import hr.fer.ppj.labos.ppj21.parse.Parser;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JFrame;

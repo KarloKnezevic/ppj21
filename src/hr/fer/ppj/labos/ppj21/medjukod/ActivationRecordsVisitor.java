@@ -7,9 +7,10 @@ import hr.fer.ppj.labos.ppj21.visitor.Visitor;
 
 public class ActivationRecordsVisitor implements Visitor {
 
+	//16-bitni procesori
 	final int WORDSIZE = 2;
 	
-	Map<String, Integer> varOffset, constructSize;
+	Map<String, Integer> varOffset, sizeOfConstruct;
 	Map<String, ArrayList<String>> children;
 	HashSet<String> addedClassesSet = new HashSet<String>();
 
@@ -28,18 +29,6 @@ public class ActivationRecordsVisitor implements Visitor {
 				it.accept(this);
 	}
 
-	public void visit(NodeOptional n) throws Exception {
-		throw new Error("visit(NodeOptional) should not have been called!");
-	}
-
-	public void visit(NodeSequence n) throws Exception {
-		throw new Error("visit(NodeSequence) should not have been called!");
-	}
-
-	public void visit(NodeToken n) throws Exception {
-		throw new Error("visit(NodeToken) should not have been called!");
-	}
-
 	/**
 	 * f0 -> MainClass()
 	 * f1 -> ( ClassDecl() )*
@@ -50,7 +39,7 @@ public class ActivationRecordsVisitor implements Visitor {
 		//inicijalizacija vrijednosti
 		cPath = "";
 		varOffset = new TreeMap<String, Integer>();
-		constructSize = new TreeMap<String, Integer>();
+		sizeOfConstruct = new TreeMap<String, Integer>();
 		children = new TreeMap<String, ArrayList<String>>();
 		(n.f0).accept(this);
 		int addedCountOld = -1;
@@ -167,7 +156,7 @@ public class ActivationRecordsVisitor implements Visitor {
 		offset = WORDSIZE * (methodArguments.size() + 3);
 		for (String arg : methodArguments)
 			setOffset(arg + "@" + cPath);
-		//postavljaju se na stog još 3 dodatna parametra
+		//postavljaju se na stog još 3 dodatna parametra(this, povratna vrijednost i povratna adresa)
 		setOffset("this@" + cPath);
 		setOffset("ret adr@" + cPath);
 		setOffset("old fp@" + cPath);
@@ -202,6 +191,18 @@ public class ActivationRecordsVisitor implements Visitor {
 	 */
 	public void visit(Exp n) throws Exception {
 		throw new Error("visit(Exp) should not have been called!");
+	}
+	
+	public void visit(NodeOptional n) throws Exception {
+		throw new Error("visit(NodeOptional) should not have been called!");
+	}
+
+	public void visit(NodeSequence n) throws Exception {
+		throw new Error("visit(NodeSequence) should not have been called!");
+	}
+
+	public void visit(NodeToken n) throws Exception {
+		throw new Error("visit(NodeToken) should not have been called!");
 	}
 
 	/**
@@ -280,10 +281,10 @@ public class ActivationRecordsVisitor implements Visitor {
 	}
 
 	public Map<String, Integer> getSizes() {
-		return constructSize;
+		return sizeOfConstruct;
 	}
 	
 	void setSize(String construct, int size) {
-		constructSize.put(construct, new Integer(size));
+		sizeOfConstruct.put(construct, new Integer(size));
 	}
 }

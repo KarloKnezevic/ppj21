@@ -4,7 +4,6 @@
 
 package hr.fer.ppj.labos.ppj21.ast;
 
-import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 import hr.fer.ppj.labos.ppj21.visitor.*;
 
 /**
@@ -31,10 +30,6 @@ public class Atom implements Node {
 
 	public Object accept(ObjectVisitor v, Object argu) throws Exception {
 		return v.visit(this, argu);
-	}
-	
-	public Object accept(SimpleNodeVisitor v) throws Exception {
-		return v.visit(this);
 	}
 
 	public Object accept(ObjectVisitor v) throws Exception {

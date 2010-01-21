@@ -3,7 +3,6 @@
 //
 
 package hr.fer.ppj.labos.ppj21.ast;
-import hr.fer.ppj.labos.ppj21.gui.util.tree.SimpleNodeVisitor;
 import hr.fer.ppj.labos.ppj21.visitor.*;
 
 /**
@@ -13,7 +12,6 @@ public interface Node extends java.io.Serializable {
 	
    public void accept(Visitor v) throws Exception;
    public Object accept(ObjectVisitor v, Object argu) throws Exception;
-   public Object accept(SimpleNodeVisitor v) throws Exception;
 
 }
 

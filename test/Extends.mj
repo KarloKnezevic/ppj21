@@ -1,0 +1,15 @@
+class A {
+	public static void main(String[] args) {
+		System.out.println(new C().ret10() + new C().ret5());
+	}
+}
+class B {
+	public int ret5() {
+		return 5;
+	}
+}
+class C extends B {
+	public int ret10() {
+		return 10;
+	}
+}

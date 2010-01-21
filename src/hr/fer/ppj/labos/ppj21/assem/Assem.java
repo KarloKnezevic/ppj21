@@ -32,7 +32,7 @@ public class Assem {
 
 	private static void header(PrintStream output){
 		output.println("*-------------------------------------------------------");
-		output.println("* Automatski generiran kod!");
+		output.println("* Automatski generiran kod, PPJgrupa21..");
 		output.println("*-------------------------------------------------------");
 		output.println("\nSTART\tORG\t$0\n");
 		output.println("\tMOVE.L\t#"+T_STACK_OFFSET+", "+T_STACK);
@@ -88,8 +88,10 @@ public class Assem {
 	}
 
 	private static void printCode(Jump jump, PrintStream output) {
+		//ako se skace na labelu
 		if(jump.target instanceof Name)
 			output.println("\tBRA\t"+((Name)jump.target).label.toString());
+		//ako se skace na privremanu vrijednost
 		else if(jump.target instanceof Temp)
 			output.println("\tJMP\t("+T_ADR_2+")");
 		else
@@ -97,12 +99,14 @@ public class Assem {
 	}
 
 	private static void printCode(Label label, PrintStream output) {
+		//prva labela nema \n ispred
 		if(labelFlag)
 			output.print("\n"+label.toString());
 		else{
 			output.print(label.toString());
 			labelFlag = true;
 		}
+		//kraj programa
 		if(label.toString().equals("DONE")){
 			output.print("\tSTOP\t#$2000\n");
 			labelFlag = false;
@@ -222,15 +226,18 @@ public class Assem {
 	}
 
 	private static void printCode(RuntimeError re, PrintStream output){
+		//ispis poruke o RuntimeErroru
 		output.println("\tLEA\tMSG, "+T_ADR_1);
 		for(int i=0; i<re.message.length(); i++)
 			output.println("\tMOVE.B\t#\'"+re.message.charAt(i)+"\', ("+T_ADR_1+")+");
 		output.println("\tMOVE.B\t#0, ("+T_ADR_1+")");
 		output.println("\tLEA\tMSG, A1\n\tMOVE\t#13, D0\n\tTRAP\t#15");
+		//skok na kraj programa
 		output.println("\tBRA\tFNSH");
 	}
 
 	private static String getTemp(Temp temp, boolean use){
+		//dohvati privremenu vrijednost
 		if(temp.name.indexOf("temp")!=-1)
 			if(use)
 				return "("+T_STACK+")+";
@@ -252,6 +259,7 @@ public class Assem {
 	}
 
 	private static String getMem(Mem mem){
+		//dohvati vrijednost sa memorijske lokacije
 		Temp temp = (Temp)mem.exp;
 		if(temp.name.indexOf("temp")!=-1)
 				return "("+T_ADR_1+")";
@@ -265,5 +273,4 @@ public class Assem {
 			return "("+T_ADR_2+")";
 		throw new Error("No such mem! "+temp.name);
 	}
-
 }

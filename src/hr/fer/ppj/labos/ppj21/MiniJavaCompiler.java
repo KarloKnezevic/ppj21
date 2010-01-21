@@ -11,15 +11,11 @@ import hr.fer.ppj.labos.ppj21.parse.Parser;
 import hr.fer.ppj.labos.ppj21.parse.TokenMgrError;
 import hr.fer.ppj.labos.ppj21.semantika.SymbolTableFillingVisitor;
 import hr.fer.ppj.labos.ppj21.semantika.TypeCheckingVisitor;
-import hr.fer.ppj.labos.ppj21.tree.Print;
 import hr.fer.ppj.labos.ppj21.tree.Stm;
 
 import java.awt.BorderLayout;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
@@ -52,7 +48,7 @@ public class MiniJavaCompiler {
 		System.out.println("Parsing starts...");
 		try {
 			program = parser.program();
-			System.out.println("Parsing completed without error");
+			System.out.println("Parsing completed without error!");
 		} catch (ParseException e) {
 			System.out.println(e.getMessage());
 			System.out.println("Syntax error occured, compilation halts.");
@@ -73,7 +69,7 @@ public class MiniJavaCompiler {
 			program.accept(symbolTableFillingVisitor);
 			TypeCheckingVisitor typeChecker = new TypeCheckingVisitor(symbolTableFillingVisitor.getSymbolTable());
 			program.accept(typeChecker);
-			System.out.println("Type-checking completed without error");
+			System.out.println("Type-checking completed without error!");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			System.out.println("Type-check error occured, compilation halts.");
@@ -87,50 +83,47 @@ public class MiniJavaCompiler {
 		if(symbolTable==null)
 			return;
 		ActivationRecordsVisitor activationRecordsVisitor = new ActivationRecordsVisitor();
-		System.out.println("Start of making activation records...");
+		System.out.println("Making activation records starts...");
 		try {
 			program.accept(activationRecordsVisitor);
-			System.out.println("Making activation records completed successfully");
+			System.out.println("Making activation records completed successfully!");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			System.out.println("Making activation records error occured, compilation halts.");
 			e.printStackTrace();
 			return;
 		}
-		System.out.println("Start of translating to IR...");
+		System.out.println("Translating to IR starts...");
 		Stm programTree;
 		IRTranslationVisitor translationVisitor = new IRTranslationVisitor(activationRecordsVisitor.getOffsets(), activationRecordsVisitor.getSizes(), symbolTable, activationRecordsVisitor.getChildren());
 		try {
 			programTree = (Stm) program.accept(translationVisitor);
-			System.out.println("Translating to IR completed successfully");
+			System.out.println("Translating to IR completed successfully!");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			System.out.println("Translating to IR error occured, compilation halts.");
 			e.printStackTrace();
 			return;
 		}
-		try {
-			Print printer = new Print(new PrintStream(new FileOutputStream("tree.txt")));
-			printer.prStm(programTree);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
-		System.out.println("Start of Canonicalization...");
+		System.out.println("Canonicalization starts...");
 		Stm canonizedTree  = Canon.toCanonicalForm(programTree);
 		System.out.println("Canonicalization completed successfully!");
 		
-		System.out.println("Start to listing...");
+		System.out.println("Listing starts...");
 		List<Stm> programList = Canon.toStmList(canonizedTree);
 		System.out.println("Listing completed successfully!");
 		
-		System.out.println("Start to coding...");
+		System.out.println("Encoding starts...");
 		try {
 			Assem.encode(programList, new PrintStream(outputStream));
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-		System.out.println("Coding completed succesfully!");
+		System.out.println("Encoding completed succesfully!");
+		try {
+			outputStream.flush();
+		} catch (IOException e) {}
 	}
 	
 	private Icon createImageIcon(String path, String description) {

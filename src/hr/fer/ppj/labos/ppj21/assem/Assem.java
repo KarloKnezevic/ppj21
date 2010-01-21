@@ -7,7 +7,7 @@ import hr.fer.ppj.labos.ppj21.tree.*;
 
 public class Assem {
 	static int label;
-	static boolean labelFlag;
+	static boolean notFirstLabel;
 
 	final static String T_STACK = "A1",
 						T_STACK_OFFSET = "$1000000",
@@ -23,7 +23,7 @@ public class Assem {
 
 	public static void encode(List<Stm> programList, PrintStream output){
 		label = 0;
-		labelFlag = false;
+		notFirstLabel = false;
 		header(output);
 		for(Stm stm : programList)
 			printCode(stm, output);
@@ -32,7 +32,7 @@ public class Assem {
 
 	private static void header(PrintStream output){
 		output.println("*-------------------------------------------------------");
-		output.println("* Automatski generiran kod, PPJgrupa21..");
+		output.println("* Generated machine code, PPJ21");
 		output.println("*-------------------------------------------------------");
 		output.println("\nSTART\tORG\t$0\n");
 		output.println("\tMOVE.L\t#"+T_STACK_OFFSET+", "+T_STACK);
@@ -63,7 +63,7 @@ public class Assem {
 		else
 			throw new Error("No such Statement! "+stm.getClass().getName());
 		if(!(stm instanceof Label)){
-			labelFlag = false;
+			notFirstLabel = false;
 		}
 	}
 
@@ -100,16 +100,16 @@ public class Assem {
 
 	private static void printCode(Label label, PrintStream output) {
 		//prva labela nema \n ispred
-		if(labelFlag)
+		if(notFirstLabel)
 			output.print("\n"+label.toString());
 		else{
 			output.print(label.toString());
-			labelFlag = true;
+			notFirstLabel = true;
 		}
 		//kraj programa
 		if(label.toString().equals("DONE")){
 			output.print("\tSTOP\t#$2000\n");
-			labelFlag = false;
+			notFirstLabel = false;
 		}
 	}
 
@@ -143,14 +143,14 @@ public class Assem {
 				case Binop.AND:
 				case Binop.MUL:
 					output.print("MULS"); break;
+				case Binop.PLUS:
+					output.print("ADD"); break;
 				case Binop.LT:
 				case Binop.MINUS:
 					output.print("SUB"); break;
-				case Binop.PLUS:
-					output.print("ADD"); break;
+				
 			}
 			output.print("\t");
-
 			if(binop.left instanceof Const)
 				output.print("#"+((Const)binop.left).value);
 			else if(binop.left instanceof Temp)
@@ -159,9 +159,7 @@ public class Assem {
 				output.print(getMem((Mem)binop.left));
 			else
 				throw new Error("No such source of Move type!");
-
 			output.println(", "+T_DAT_2);
-
 			if(binop.binop == Binop.MINUS)
 				output.println("\tNEG\t"+T_DAT_2);
 			if(binop.binop == Binop.LT){
@@ -189,7 +187,6 @@ public class Assem {
 
 		if(move.dst instanceof Mem && ((Temp)((Mem)move.dst).exp).name.contains("temp"))
 			output.println("\tMOVE\t("+T_STACK+")+, "+T_DAT_3);
-
 		if(move.src instanceof Temp && ((Temp)move.src).name.contains("temp") && move.dst instanceof Mem && ((Mem)move.dst).exp instanceof Temp && ((Temp)((Mem)move.dst).exp).name.contains("temp")){
 			output.println("\tMOVE\t"+T_DAT_2+", -("+T_STACK+")  * New Approach!");
 			output.println("\tMOVE\t"+T_DAT_3+", "+T_DAT_2);

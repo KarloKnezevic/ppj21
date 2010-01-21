@@ -164,7 +164,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 			res = add(res, new Label(child + LABEL_SEPERATOR + cMethod));
 		res = add(res, new Move(FP, SP));
 		//dohvacamo velicinu citave metode
-		int size = getSize(cMethod + "@" + cClass) / WORDSIZE;
+		int size = getSizeOfConstruct(cMethod + "@" + cClass) / WORDSIZE;
 		for (int i = 0; i < size; i++)
 			//toliko mjesta stavljamo na stog
 			res = add(res, push(new Const(0)));
@@ -175,8 +175,8 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		if (size > 0)
 			res = add(res, pop(size));
 		//povratna adresa
-		res = add(res, new Move(AR, getLocal("ret adr")));
-		res = add(res, new Move(FP, getLocal("old fp")));
+		res = add(res, new Move(AR, getLocalVar("ret adr")));
+		res = add(res, new Move(FP, getLocalVar("old fp")));
 		res = add(res, new Jump(AR));
 		cMethod = "";
 		return res;
@@ -202,7 +202,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 			return ifThenElse((Expr) ns.elementAt(2).accept(this, null),(Stm) ns.elementAt(4).accept(this, null), (Stm) ns.elementAt(6).accept(this, null));
 		case 2:
 			//do-while izraz
-			return whileDo((Expr) ns.elementAt(2).accept(this, null), (Stm) ns.elementAt(4).accept(this, null));
+			return doWhile((Expr) ns.elementAt(2).accept(this, null), (Stm) ns.elementAt(4).accept(this, null));
 		case 3:
 			//ispis
 			return new Out((Expr) ns.elementAt(2).accept(this, null));
@@ -289,14 +289,14 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		case 0:
 			//novo polje
 			Expr size = (Expr) ((NodeSequence) (((NodeChoice) n.f1).choice)).elementAt(3).accept(this, null);
-			alloc = allocateInstrs(new Binop(Binop.PLUS, new Const(0),size), true);
+			alloc = alloc(new Binop(Binop.PLUS, new Const(0),size), true);
 			object = AR;
 			cType = "int[]";
 			break;
 		case 1:
 			//konstruktor tipa
 			String name = ((ID) (((NodeSequence) (((NodeChoice) n.f1).choice)).elementAt(1))).toString();
-			alloc = allocateInstrs((new Const(getSize(name) / WORDSIZE)),false);
+			alloc = alloc((new Const(getSizeOfConstruct(name) / WORDSIZE)),false);
 			object = AR;
 			cType = name;
 			break;
@@ -336,7 +336,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		Expr object = (Expr) argu;
 		NodeSequence ns = (NodeSequence) n.f0.choice;
 		//provjera za NullPointerException
-		Stm check = ifThen(isZero(object), rte("NullPointer", (NodeToken) ns.elementAt(0)));
+		Stm check = ifThen(isZero(object), runtimeError("NullPointer", (NodeToken) ns.elementAt(0)));
 		switch (n.f0.which) {
 		case 0:
 			//duljina polja
@@ -348,7 +348,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 			//stvaranje imena labele
 			String labelName = cType + LABEL_SEPERATOR + ((ID) ns.elementAt(1)).toString();
 			//dohvat tipa metode
-			String methodType = getType(cType + ":" + ((ID) ns.elementAt(1)).toString());
+			String methodType = getClass(cType + ":" + ((ID) ns.elementAt(1)).toString());
 			//argumenti
 			ArrayList<Expr> argList = new ArrayList<Expr>();
 			NodeOptional nc = (NodeOptional) ns.elementAt(3);
@@ -428,13 +428,13 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		String name = n.toString();
 		//provjera nalazi li se varijabla u metodi
 		if (varOffset.keySet().contains(name + "@" + cMethod + "@" + cClass)) {
-			cType = getType(cClass + ":" + cMethod + ":" + name);
-			return getLocal(name);
+			cType = getClass(cClass + ":" + cMethod + ":" + name);
+			return getLocalVar(name);
 		}
 		//provjera nalazi li se u razredu
 		else if (varOffset.keySet().contains(name + "@" + cClass)) {
-			cType = getType(cClass + ":" + name);
-			return getField(name);
+			cType = getClass(cClass + ":" + name);
+			return getClassVar(name);
 		}
 		else
 			throw new Error("Variable " + name + " not found at line " + n.f0.beginLine + " column " + n.f0.beginColumn);
@@ -449,20 +449,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		return new Binop(Binop.AND,new Binop(Binop.LT, e, new Const(1)),new Binop(Binop.LT, new Const(-1), e));
 	}
 
-	int getOffset(String varName) {
-		//dohvat offesta varijable
-		if (!varOffset.containsKey((varName)))
-			throw new Error("Variable not found: " + varName);
-		return (varOffset.get(varName)).intValue();
-	}
-
-	int getSize(String constructName) {
-		if (!sizeOfConstruct.containsKey((constructName)))
-			throw new Error("Construct not found: " + constructName);
-		return (sizeOfConstruct.get(constructName)).intValue();
-	}
-
-	String getType(String className) {
+	String getClass(String className) {
 		if (!symTable.keySet().contains((className)))
 			throw new Error("Class " + className + " not found!");
 		return symTable.get(className);
@@ -476,6 +463,19 @@ public class IRTranslationVisitor implements ObjectVisitor {
 			result.addAll(getAllChildren(child));
 		}
 		return result;
+	}
+	
+	int getVarOffset(String varName) {
+		//dohvat offesta varijable
+		if (!varOffset.containsKey((varName)))
+			throw new Error("Variable not found: " + varName);
+		return (varOffset.get(varName)).intValue();
+	}
+
+	int getSizeOfConstruct(String constructName) {
+		if (!sizeOfConstruct.containsKey((constructName)))
+			throw new Error("Construct not found: " + constructName);
+		return (sizeOfConstruct.get(constructName)).intValue();
 	}
 	
 	Stm add(Stm a, Stm b) {
@@ -513,25 +513,37 @@ public class IRTranslationVisitor implements ObjectVisitor {
 	}
 
 	Expr getThis() {
-		return getLocal("this");
+		return getLocalVar("this");
 	}
 
-	Expr getLocal(String localName) {
+	Expr getLocalVar(String localName) {
 		//dohvati offest lokalne varijable
 		String name = localName + "@" + cMethod + "@" + cClass;
 		if (!varOffset.containsKey((name)))
 			throw new Error("Local not found: " + name);
-		return new Mem(new Binop(Binop.PLUS, FP, new Const(getOffset(name))));
+		return new Mem(new Binop(Binop.PLUS, FP, new Const(getVarOffset(name))));
 	}
 
-	Expr getField(String fieldName) {
+	Expr getClassVar(String fieldName) {
 		//dohvati offest varijable razreda
 		String name = fieldName + "@" + cClass;
 		if (!varOffset.containsKey((name)))
 			throw new Error("Field not found: " + name);
-		return new Mem(new Binop(Binop.PLUS, getThis(), new Const(getOffset(name))));
+		return new Mem(new Binop(Binop.PLUS, getThis(), new Const(getVarOffset(name))));
 	}
 
+	Stm ifThen(Expr e, Stm s) {
+		Label t = getNextLabel(), d = getNextLabel();
+		Stm res = new CJump(e, t, d);
+		//dodaj labelu za true
+		res = add(res, t);
+		//dodaj naredbe za true
+		res = add(res, s);
+		//dodaj skok za else
+		res = add(res, d);
+		return res;
+	}
+	
 	Stm ifThenElse(Expr e, Stm s1, Stm s2) {
 		Label t = getNextLabel(), f = getNextLabel(), j = getNextLabel();
 		Stm res = new CJump(e, t, f);
@@ -549,19 +561,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		return res;
 	}
 
-	Stm ifThen(Expr e, Stm s) {
-		Label t = getNextLabel(), d = getNextLabel();
-		Stm res = new CJump(e, t, d);
-		//dodaj labelu za true
-		res = add(res, t);
-		//dodaj naredbe za true
-		res = add(res, s);
-		//dodaj skok za else
-		res = add(res, d);
-		return res;
-	}
-
-	Stm whileDo(Expr e, Stm s) {
+	Stm doWhile(Expr e, Stm s) {
 		Label c = getNextLabel(), b = getNextLabel(), d = getNextLabel();
 		Stm res = c;
 		//dodaj uvjetni skok za petlju
@@ -573,7 +573,7 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		return res;
 	}
 
-	Stm allocateInstrs(Expr size, boolean array) {
+	Stm alloc(Expr size, boolean array) {
 		Stm s = new Move(AR, HP);
 		s = add(s, new Move(new Mem(SP), size));
 		if (array) {
@@ -584,11 +584,11 @@ public class IRTranslationVisitor implements ObjectVisitor {
 		Stm whileBody = new Move(new Mem(HP), new Const(0));
 		whileBody = add(whileBody, addConst(HP, WORDSIZE));
 		whileBody = add(whileBody, addConst(new Mem(SP), -1));
-		s = add(s, whileDo(whileCheck, whileBody));
+		s = add(s, doWhile(whileCheck, whileBody));
 		return s;
 	}
 
-	Stm rte(String s, NodeToken n) {
+	Stm runtimeError(String s, NodeToken n) {
 		//RuntimeError
 		return new RuntimeError(s + " at line " + n.beginLine + ", column " + n.beginColumn);
 	}
@@ -596,11 +596,11 @@ public class IRTranslationVisitor implements ObjectVisitor {
 	Expr arrayIndex(Expr a, Expr index, NodeToken n) {
 		Stm s = new Move(TR, index);
 		Expr index1 = new Binop(Binop.PLUS, TR, new Const(1));
-		s = add(s, ifThen(isZero(a), rte("NullPointer", n)));
+		s = add(s, ifThen(isZero(a), runtimeError("NullPointer", n)));
 		//ako je index veci od velicine polja
-		s = add(s, ifThen(new Binop(Binop.LT, new Mem(new Binop(Binop.PLUS, a, new Const(0))),index1), rte("IndexOutOfBounds", n)));
+		s = add(s, ifThen(new Binop(Binop.LT, new Mem(new Binop(Binop.PLUS, a, new Const(0))),index1), runtimeError("IndexOutOfBounds", n)));
 		//ako je indeks premali
-		s = add(s, ifThen(new Binop(Binop.LT, index1, new Const(1)),rte("IndexOutOfBounds", n)));
+		s = add(s, ifThen(new Binop(Binop.LT, index1, new Const(1)),runtimeError("IndexOutOfBounds", n)));
 			return new ESeq(s, new Mem(new Binop(Binop.PLUS, a, new Binop(Binop.MUL, index1, new Const(WORDSIZE)))));
 	}
 	
